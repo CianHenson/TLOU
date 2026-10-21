@@ -1,0 +1,9 @@
+/* The look is the original app's stylesheet (gold theme), unchanged. Tailwind is available for new utility
+   classes only; its preflight reset is disabled in tailwind.config.js so it cannot alter the old design. */
+@import './theme.css';
+
+/* React mounts inside #root, so the original `body.pub > main` sticky-footer rules apply to #root instead. */
+body.pub #root { display: flex; flex-direction: column; min-height: 100vh; }
+body.pub #root > main { flex: 1 0 auto; }
+
+@tailwind utilities;
