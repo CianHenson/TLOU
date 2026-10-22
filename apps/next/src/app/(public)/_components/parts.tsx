@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Settings } from '@/lib/biz';
+import { ContactList } from '@/components/contact-list';
 
 const isUrl = (s: string) => /^https?:\/\//.test(s);
 
@@ -9,19 +10,12 @@ export const Values = ({ S, mr = 6 }: { S: Settings; mr?: number }) => (
 
 export function ContactCard({ S, home }: { S: Settings; home?: boolean }) {
   return (
-    <div className="card"><dl className="kv">
-      {S.phone && <><dt>Phone</dt><dd>{S.phone}</dd></>}
-      {S.mobile && <><dt>Mobile</dt><dd>{S.mobile}</dd></>}
-      {S.email && <><dt>Email</dt><dd>{S.email}</dd></>}
-      <dt>{home ? 'Visit us' : 'Address'}</dt><dd>{S.address}</dd>
-      {S.hours && <><dt>Hours</dt><dd>{S.hours}</dd></>}
-      {home
-        ? (S.facebook_name || isUrl(S.facebook)) && <><dt>Facebook</dt><dd>{isUrl(S.facebook)
-          ? <a href={S.facebook} rel="noopener noreferrer" target="_blank">{S.facebook_name || S.facebook}</a> : S.facebook_name}</dd></>
-        : isUrl(S.facebook) && <><dt>Facebook</dt><dd><a href={S.facebook} rel="noopener noreferrer" target="_blank">{S.facebook}</a></dd></>}
-      {isUrl(S.instagram) && <><dt>Instagram</dt><dd><a href={S.instagram} rel="noopener noreferrer" target="_blank">{S.instagram}</a></dd></>}
-    </dl></div>
+    <div className="card">
+      <ContactList S={S} />
+      {S.hours && <p className="small muted" style={{ marginTop: 14, marginBottom: 0 }}><strong>Hours:</strong> {S.hours}</p>}
+      {isUrl(S.instagram) && <p className="small" style={{ marginBottom: 0 }}><a href={S.instagram} rel="noopener noreferrer" target="_blank">Instagram</a></p>}
+      {home && <p className="small muted" style={{ marginTop: 10, marginBottom: 0 }}>Tap an icon to message us on WhatsApp or email.</p>}
+    </div>
   );
 }
-
 export const PrivacyLink = () => <p><Link href="/privacy">Privacy policy</Link></p>;

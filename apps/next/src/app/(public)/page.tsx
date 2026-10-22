@@ -4,7 +4,7 @@ import { settings } from '@/lib/biz';
 import { peso } from '@/lib/util';
 import type { Service } from '@/lib/types';
 import { ContactForm } from './_components/contact-form';
-import { ContactCard, PrivacyLink, Values } from './_components/parts';
+import { ContactCard, Values } from './_components/parts';
 
 export const metadata = { title: 'Home' };
 
@@ -83,7 +83,7 @@ export default async function Home() {
         <div className="grid g2" style={{ alignItems: 'start' }}>
           <div><span className="eyebrow">Contact us</span><h2>Talk to us</h2>
             <ContactCard S={S} home />
-            <PrivacyLink />
+            
           </div>
           <ContactForm showFlash />
         </div>

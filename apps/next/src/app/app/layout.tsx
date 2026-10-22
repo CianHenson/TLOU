@@ -25,7 +25,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="side" aria-label="Navigation">
-        <Link className="logo" href="/app"><i>✈</i><span>{S.business_name}</span></Link>
+        <Link className="logo" href="/app"><span className="mark"><img src="/logo.png" alt="" /></span><span>{S.business_name}</span></Link>
         <AppNav items={nav} userName={me.name} roleLabel={owner ? 'Owner' : 'Employee'} />
       </aside>
       <div className="main">{children}</div>
