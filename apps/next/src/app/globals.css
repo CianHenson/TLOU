@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "./theme.css";
+
+/* Extra helpers used by the Next.js components (theme.css carries the rest of the design system). */
+.spin{display:inline-block;width:.9em;height:.9em;margin-right:.5em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-.1em}
+@keyframes sp{to{transform:rotate(360deg)}}
+div.pub{display:flex;flex-direction:column;min-height:100vh}
+div.pub>main{flex:1 0 auto}
