@@ -20,7 +20,7 @@ export const POST = api(async (req) => {
     return fail('Invalid username or password.', 400); // not 401: ApiForm treats 401 as "session expired"
   }
   clearLimit(key);
-  await startSession(u!.id);
+  await startSession(u!.id, !!b.remember);
   await audit({ user: { id: u!.id, username: u!.username }, ip }, 'login', 'user', u!.id, '');
   return ok(undefined, { redirect: u!.must_change_pw ? '/app/profile' : '/app' });
 });
