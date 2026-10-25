@@ -1,8 +1,8 @@
 // Current-user lookup and access guards. The session cookie (see session.ts) only carries { uid, exp } + an HMAC;
-// the user record is always re-read from MySQL so deactivation, role changes and forced password changes apply immediately.
+// the user record is always re-read from MySQL so deactivation and role changes apply immediately.
 import 'server-only';
 import { cache } from 'react';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { db } from './db';
 import { COOKIE, MAX_AGE, REMEMBER_MAX_AGE, cookieOptions, readSession, signSession } from './session';
@@ -38,23 +38,23 @@ export class HttpError extends Error {
 type Need = 'user' | 'owner' | 'expenses';
 const allowed = (u: SessionUser, need: Need) => need === 'user' || (need === 'owner' ? isOwner(u) : isOwner(u) || u.can_expenses);
 
-/**
- * For pages / layouts: returns the user or redirects. Users who must change their password are sent to the profile
- * page (the only page that passes `allowMustChange`). Forbidden roles get /app/forbidden.
- */
-export async function requireUser(need: Need = 'user', opts: { allowMustChange?: boolean } = {}): Promise<SessionUser> {
+/** The only /app pages the owner sees (each entry also covers its sub-pages). Everything else redirects to the dashboard. */
+const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/finance', '/app/finance-monitor', '/app/expenses', '/app/employees', '/app/profile', '/app/forbidden'];
+const ownerHidden = (path: string) => path !== '/app' && !OWNER_MODULES.some((m) => path === m || path.startsWith(m + '/'));
+
+/** For pages / layouts: returns the user or redirects. Forbidden roles get /app/forbidden. */
+export async function requireUser(need: Need = 'user'): Promise<SessionUser> {
   const u = await currentUser();
   if (!u) redirect('/login');
-  if (u.must_change_pw && !opts.allowMustChange) redirect('/app/profile');
+  if (isOwner(u) && ownerHidden((await headers()).get('x-pathname') ?? '/app')) redirect('/app');
   if (!allowed(u, need)) redirect('/app/forbidden');
   return u;
 }
 
 /** For route handlers: returns the user or throws HttpError (401 / 403) which the `api()` wrapper turns into JSON. */
-export async function apiUser(need: Need = 'user', opts: { allowMustChange?: boolean } = {}): Promise<SessionUser> {
+export async function apiUser(need: Need = 'user'): Promise<SessionUser> {
   const u = await currentUser();
   if (!u) throw new HttpError(401, 'Please sign in again.');
-  if (u.must_change_pw && !opts.allowMustChange) throw new HttpError(403, 'Change your password first.');
   if (!allowed(u, need)) throw new HttpError(403, 'You do not have permission to do that.');
   return u;
 }

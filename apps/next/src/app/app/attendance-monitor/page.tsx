@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as U from '@/lib/util';
-import { flat } from '@/lib/list';
+import { flat, paginate } from '@/lib/list';
 import { activeStaff, dayRows } from '@/lib/queries/owner';
-import { Page } from '@/components/ui';
+import { attendanceLogQuery } from '@/lib/queries/attendance-log';
+import { Page, Pager } from '@/components/ui';
 import { ApiForm, Submit } from '@/components/form';
 
 export const metadata = { title: 'Attendance Monitoring' };
@@ -21,20 +22,38 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
     activeStaff(),
   ]);
   const hm = (s?: string | null) => (s ? s.slice(11, 16) : '');
+  const [logSql, logP, range] = attendanceLogQuery(q);
+  const log = await paginate(q, logSql, logP, 31);
   return (
-    <Page title="Attendance Monitoring">
+    <Page title="Attendance Monitoring" filters={
       <form className="filters" method="get"><div><label>Date</label><input type="date" name="day" defaultValue={day} max={today} /></div>
-        <div className="btnrow"><button className="btn">Show</button><a className="btn ghost" href={`/api/attendance-monitor/export?day=${day}`}>Export CSV</a><Link className="btn ghost" href="/app/attendance-report">Monthly reports →</Link></div></form>
+          <div className="btnrow"><button className="btn">Show</button><a className="btn ghost" href={`/api/attendance-monitor/export?day=${day}`}>Export CSV</a></div></form>
+    }>
       <p className="muted small">Live view as of {U.now().slice(11, 16)} (Asia/Manila). Absences are only flagged after the employee&apos;s shift end.</p>
       <div className="tw"><table><thead><tr><th>Employee</th><th>Schedule</th><th>Status</th><th>Time in</th><th>Time out</th><th className="num">Late (min)</th><th className="num">Hours</th><th>Correct record</th></tr></thead><tbody>
         {rows.map(({ u, d }) => (
-          <tr key={u.id}><td>{u.name}<div className="small muted">{u.emp_no}</div></td><td className="nowrap">{u.sched_start}–{u.sched_end} (+{u.grace_min})</td><td><span className={`badge ${CLS[d.status] || ''}`}>{d.status}</span></td>
+          <tr key={u.id}><td>{u.name}<div className="small muted">{u.designation || u.emp_no}</div></td><td className="nowrap">{u.sched_start}–{u.sched_end} (+{u.grace_min})</td><td><span className={`badge ${CLS[d.status] || ''}`}>{d.status}</span></td>
             <td>{hm(d.rec?.time_in) || '—'}</td><td>{hm(d.rec?.time_out) || '—'}</td><td className="num">{d.late_min || ''}</td><td className="num">{d.mins ? U.hrs(d.mins) : ''}</td>
             <td><ApiForm action="/api/attendance/correct" className="row">
               <input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="day" value={day} />
               <input type="time" name="time_in" defaultValue={hm(d.rec?.time_in)} required style={{ width: 105 }} /><input type="time" name="time_out" defaultValue={hm(d.rec?.time_out)} style={{ width: 105 }} />
               <input name="reason" placeholder="Reason (required)" required maxLength={500} style={{ width: 150 }} /><Submit className="btn ghost sm">Save</Submit></ApiForm></td></tr>
         ))}</tbody></table></div>
+
+      <h2 style={{ marginTop: 28 }}>Staff attendance log</h2>
+      <form className="filters" method="get" key={log.qs}>
+        <input type="hidden" name="day" value={day} />
+        <div><label>Employee</label><select name="uid" defaultValue={q.uid || ''}><option value="">All</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+        <div><label>From</label><input type="date" name="lfrom" defaultValue={range.from} max={today} /></div><div><label>To</label><input type="date" name="lto" defaultValue={range.to} max={today} /></div>
+        <div className="btnrow"><button className="btn">Show</button><a className="btn ghost" href={`/api/attendance-monitor/log-export?${log.qs}`}>Export CSV</a></div></form>
+      <div className="tw"><table><thead><tr><th>Name</th><th>Date</th><th>Time in</th><th>Time out</th><th>Designation</th></tr></thead><tbody>
+        {log.rows.map((r) => (
+          <tr key={`${r.name}-${r.day}`}><td>{r.name}</td><td className="nowrap">{r.day}</td>
+            <td>{hm(r.time_in) || '—'}{r.is_late ? <> <span className="badge b-warn">Late</span></> : null}</td><td>{hm(r.time_out) || '—'}</td><td>{r.designation || '—'}</td></tr>
+        ))}
+        {!log.rows.length && <tr><td colSpan={5} className="empty">No attendance recorded for these dates.</td></tr>}
+      </tbody></table></div>
+      <Pager list={log} />
 
       <div className="grid g2" style={{ marginTop: 20, alignItems: 'start' }}>
         <ApiForm action="/api/attendance/leave" reset className="card"><h3>Record approved leave / holiday</h3>

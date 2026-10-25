@@ -17,8 +17,8 @@ export const POST = api(async (req, ctx) => {
   if (Object.keys(errors).length) return invalid(errors);
   const hash = pw ? await hashPassword(pw) : null;
   await tx(async (d) => {
-    await d.run(`UPDATE users SET name=?,email=?,username=?,role=?,active=?,can_expenses=?,sched_start=?,sched_end=?,grace_min=?,break_min=?,workdays=? WHERE id=?`,
-      [e.name, e.email, e.username, e.role, e.active, e.can_expenses, e.sched_start, e.sched_end, e.grace_min, e.break_min, e.workdays, old.id]);
+    await d.run(`UPDATE users SET name=?,email=?,username=?,role=?,designation=?,active=?,can_expenses=?,sched_start=?,sched_end=?,grace_min=?,break_min=?,workdays=? WHERE id=?`,
+      [e.name, e.email, e.username, e.role, e.designation || null, e.active, e.can_expenses, e.sched_start, e.sched_end, e.grace_min, e.break_min, e.workdays, old.id]);
     if (hash) await d.run('UPDATE users SET password_hash=?, must_change_pw=1 WHERE id=?', [hash, old.id]);
   });
   await audit({ user, ip: clientIp(req) }, 'employee.update', 'user', old.id, {

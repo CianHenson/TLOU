@@ -14,7 +14,7 @@ const TABLES = [
     active TINYINT NOT NULL DEFAULT 1, sort INT NOT NULL DEFAULT 0)`,
   `CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY, emp_no VARCHAR(20) UNIQUE, name VARCHAR(120) NOT NULL, email VARCHAR(160), username VARCHAR(40) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL, role VARCHAR(10) NOT NULL, active TINYINT NOT NULL DEFAULT 1, can_expenses TINYINT NOT NULL DEFAULT 0,
+    password_hash VARCHAR(255) NOT NULL, role VARCHAR(10) NOT NULL, designation VARCHAR(80) NULL, active TINYINT NOT NULL DEFAULT 1, can_expenses TINYINT NOT NULL DEFAULT 0,
     must_change_pw TINYINT NOT NULL DEFAULT 0, sched_start VARCHAR(5) NOT NULL DEFAULT '08:00', sched_end VARCHAR(5) NOT NULL DEFAULT '17:00',
     grace_min INT NOT NULL DEFAULT 10, break_min INT NOT NULL DEFAULT 60, workdays VARCHAR(20) NOT NULL DEFAULT '1,2,3,4,5',
     created_at VARCHAR(19) NOT NULL, CONSTRAINT ck_user_role CHECK (role IN ('owner','employee')))`,
@@ -66,6 +66,15 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS audit_logs (
     id INT AUTO_INCREMENT PRIMARY KEY, at VARCHAR(19) NOT NULL, user_id INT NULL, username VARCHAR(40), action VARCHAR(60) NOT NULL,
     entity VARCHAR(30), entity_id VARCHAR(60), detail MEDIUMTEXT, ip VARCHAR(64), INDEX ix_audit_at (at))`,
+  // Passenger airfare sales & monitoring schedule (the client's Excel sheet). total_amount = what the customer pays
+  // (airline fare + service charge); card_fee = credit/debit card fee the agency absorbs (stored positive, shown as a deduction).
+  `CREATE TABLE IF NOT EXISTS airfare_sales (
+    id INT AUTO_INCREMENT PRIMARY KEY, txn_date CHAR(10) NOT NULL, airline VARCHAR(80) NOT NULL, pnr VARCHAR(20) NOT NULL, pax INT NOT NULL DEFAULT 1,
+    passenger VARCHAR(255) NOT NULL, contact VARCHAR(60), email_fb VARCHAR(160), origin VARCHAR(80) NOT NULL, destination VARCHAR(80) NOT NULL,
+    travel_date CHAR(10) NOT NULL, travel_time VARCHAR(5), checkin_status VARCHAR(12) NOT NULL DEFAULT 'Pending', flight_no VARCHAR(40),
+    total_amount BIGINT NOT NULL DEFAULT 0, service_charge BIGINT NOT NULL DEFAULT 0, card_fee BIGINT NOT NULL DEFAULT 0, remarks TEXT,
+    user_id INT NULL, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NULL,
+    INDEX ix_af_txn (txn_date), INDEX ix_af_travel (travel_date), INDEX ix_af_pnr (pnr), FOREIGN KEY (user_id) REFERENCES users(id))`,
   `CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120), email VARCHAR(160), phone VARCHAR(40), body TEXT, at VARCHAR(19) NOT NULL,
     handled TINYINT NOT NULL DEFAULT 0)`,
@@ -111,6 +120,10 @@ const SERVICES: [string, string, string, string][] = [
 
 export async function ensureSchema(d: Db) {
   for (const t of TABLES) await d.run(t);
+  // Columns added after the first release (CREATE TABLE IF NOT EXISTS leaves existing tables untouched).
+  const hasCol = async (t: string, c: string) =>
+    !!(await d.val('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?', [t, c]));
+  if (!(await hasCol('users', 'designation'))) await d.run('ALTER TABLE users ADD COLUMN designation VARCHAR(80) NULL AFTER role');
   const have = new Set((await d.all<{ k: string }>('SELECT k FROM settings')).map((r) => r.k));
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) if (!have.has(k)) await d.run('INSERT INTO settings (k,v) VALUES (?,?)', [k, v]);
   if (!(await d.val('SELECT COUNT(*) FROM services'))) {

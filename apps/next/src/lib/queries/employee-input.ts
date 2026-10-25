@@ -6,7 +6,7 @@ import { strongEnough } from '../password';
 export function employeeInput(b: Record<string, FormDataEntryValue | undefined>, workdays: FormDataEntryValue[], isNew: boolean) {
   const T = /^([01]\d|2[0-3]):[0-5]\d$/;
   const e = {
-    name: str(b.name, 120), email: str(b.email, 160), username: str(b.username, 40).toLowerCase(), role: b.role === 'owner' ? 'owner' : 'employee',
+    name: str(b.name, 120), email: str(b.email, 160), username: str(b.username, 40).toLowerCase(), role: b.role === 'owner' ? 'owner' : 'employee', designation: str(b.designation, 80),
     active: b.active === 'on' ? 1 : 0, can_expenses: b.can_expenses === 'on' ? 1 : 0, sched_start: str(b.sched_start, 5), sched_end: str(b.sched_end, 5),
     grace_min: parseInt(String(b.grace_min ?? ''), 10), break_min: parseInt(String(b.break_min ?? ''), 10),
     workdays: [...new Set(workdays.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))].sort().join(','),

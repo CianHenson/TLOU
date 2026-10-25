@@ -17,11 +17,18 @@ export function Badge({ children, cls }: { children: ReactNode; cls?: string }) 
   return <span className={`badge ${cls ?? (typeof children === 'string' ? badgeClass(children) : '')}`}>{children}</span>;
 }
 
-/** Topbar (menu button + title) and the flash message; every /app page renders its content inside <Page>. */
-export function Page({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+/**
+ * Module header (menu button + title + the page's filter form + actions, in a sticky glass bar) and the flash message;
+ * every /app page renders its content inside <Page>. `filters` is usually a GET `<form className="filters">`.
+ */
+export function Page({ title, actions, filters, children }: { title: string; actions?: ReactNode; filters?: ReactNode; children: ReactNode }) {
   return (
     <>
-      <div className="topbar"><div className="row"><MenuButton /><h1>{title}</h1></div>{actions && <div className="row noprint">{actions}</div>}</div>
+      <header className="mhead">
+        <div className="mh-title"><MenuButton /><h1>{title}</h1></div>
+        {filters && <div className="mh-tools">{filters}</div>}
+        {actions && <div className="row noprint mh-actions">{actions}</div>}
+      </header>
       <FlashBar />
       {children}
     </>

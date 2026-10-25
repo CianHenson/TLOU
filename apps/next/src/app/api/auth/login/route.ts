@@ -22,5 +22,5 @@ export const POST = api(async (req) => {
   clearLimit(key);
   await startSession(u!.id, !!b.remember);
   await audit({ user: { id: u!.id, username: u!.username }, ip }, 'login', 'user', u!.id, '');
-  return ok(undefined, { redirect: u!.must_change_pw ? '/app/profile' : '/app' });
+  return ok(undefined, { redirect: '/app' });
 });

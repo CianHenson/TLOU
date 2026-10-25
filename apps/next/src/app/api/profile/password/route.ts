@@ -5,7 +5,7 @@ import { apiUser } from '@/lib/auth';
 import { hashPassword, strongEnough, verifyPassword } from '@/lib/password';
 
 export const POST = api(async (req) => {
-  const user = await apiUser('user', { allowMustChange: true });
+  const user = await apiUser();
   const { b } = await form(req);
   const u = (await db.get('SELECT id,password_hash FROM users WHERE id=?', [user.id]))!;
   const current = String(b.current || ''), next = String(b.next || ''), confirm = String(b.confirm || '');

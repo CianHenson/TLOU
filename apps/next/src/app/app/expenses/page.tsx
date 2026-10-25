@@ -19,7 +19,14 @@ export default async function Expenses(props: PageProps<'/app/expenses'>) {
   ]);
   const owner = isOwner(me), td = today();
   return (
-    <Page title="Expenses">
+    <Page title="Expenses" filters={
+      <form className="filters" method="get" key={list.qs}>
+          <div className="grow"><label>Search</label><input name="q" defaultValue={q.q || ''} /></div>
+          <div><label>Category</label><select name="category" defaultValue={q.category || ''}><option value="">All</option>{EXPENSE_CATS.map((c) => <option key={c}>{c}</option>)}</select></div>
+          <div><label>From</label><input type="date" name="from" defaultValue={q.from || ''} /></div><div><label>To</label><input type="date" name="to" defaultValue={q.to || ''} /></div>
+          <div className="btnrow"><button className="btn">Filter</button><a className="btn ghost" href={`/api/expenses/export?${list.qs}`}>Export CSV</a></div>
+        </form>
+    }>
       <ApiForm action="/api/expenses" reset className="card">
         <h3>Record an expense</h3>
         <div className="grid g4">
@@ -34,12 +41,6 @@ export default async function Expenses(props: PageProps<'/app/expenses'>) {
         </div>
         <Submit>Save expense</Submit>
       </ApiForm>
-      <form className="filters" method="get" key={list.qs}>
-        <div className="grow"><label>Search</label><input name="q" defaultValue={q.q || ''} /></div>
-        <div><label>Category</label><select name="category" defaultValue={q.category || ''}><option value="">All</option>{EXPENSE_CATS.map((c) => <option key={c}>{c}</option>)}</select></div>
-        <div><label>From</label><input type="date" name="from" defaultValue={q.from || ''} /></div><div><label>To</label><input type="date" name="to" defaultValue={q.to || ''} /></div>
-        <div className="btnrow"><button className="btn">Filter</button><a className="btn ghost" href={`/api/expenses/export?${list.qs}`}>Export CSV</a></div>
-      </form>
       <p><strong>Total (valid) for this filter: {peso(total)}</strong></p>
       <div className="tw"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Method</th><th className="num">Amount</th><th>By</th><th>Receipt</th><th></th></tr></thead><tbody>
         {list.rows.map((e) => (

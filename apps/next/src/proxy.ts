@@ -11,7 +11,10 @@ export async function proxy(req: NextRequest) {
     url.search = '';
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+  // Pass the path on so requireUser() can hide modules from the owner (see OWNER_MODULES in lib/auth.ts).
+  const headers = new Headers(req.headers);
+  headers.set('x-pathname', req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = { matcher: ['/app/:path*'] };

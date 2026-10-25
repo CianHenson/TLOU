@@ -9,6 +9,6 @@ export const GET = api(async (req) => {
   const day = isDate(q) ? q : today();
   const hm = (s?: string | null) => (s ? s.slice(11, 16) : '');
   const rows = await dayRows(day);
-  return csv('attendance-' + day, ['Emp No', 'Employee', 'Date', 'Status', 'Time in', 'Time out', 'Late (min)', 'Hours'],
-    rows.map(({ u, d }) => [u.emp_no, u.name, day, d.status, hm(d.rec?.time_in), hm(d.rec?.time_out), d.late_min, hrs(d.mins)]));
+  return csv('attendance-' + day, ['Emp No', 'Employee', 'Designation', 'Date', 'Status', 'Time in', 'Time out', 'Late (min)', 'Hours'],
+    rows.map(({ u, d }) => [u.emp_no, u.name, u.designation, day, d.status, hm(d.rec?.time_in), hm(d.rec?.time_out), d.late_min, hrs(d.mins)]));
 });

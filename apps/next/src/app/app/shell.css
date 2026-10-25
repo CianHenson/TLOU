@@ -1,0 +1,267 @@
+/* Staff area shell: glass sidebar (collapsible to an icon rail) + light / dark theme.
+   State lives on .shell as data-theme / data-side, set from cookies in app/app/layout.tsx and flipped by <SideTools>.
+   The sidebar is the same dark gold glass in both themes; only the page area changes. */
+.shell{--side-w:240px;--side-bd:rgba(255,255,255,.1);--side-ink:#e4dcc6;--side-mut:#a39770;--side-hover:rgba(255,255,255,.08);
+  --side-bg:radial-gradient(360px 300px at 0% 0%,rgba(214,170,60,.18),transparent 70%),linear-gradient(180deg,rgba(40,33,21,.92),rgba(26,22,15,.94));
+  position:relative;color:var(--ink);
+  background:radial-gradient(520px 420px at 0% 8%,rgba(214,170,60,.34),transparent 65%),radial-gradient(420px 360px at 4% 92%,rgba(176,112,40,.22),transparent 65%),radial-gradient(700px 500px at 100% 100%,rgba(199,154,43,.1),transparent 60%),var(--bg);
+  background-attachment:fixed}
+/* Dark: obsidian page background; cards, text and controls keep the warm espresso / gold palette. */
+.shell[data-theme=dark]{--ink:#f1ead8;--mut:#b3a789;--bg:#101114;--line:#3a3120;--card:#1f1a12;--brand-t:#e8c35e;--sh:0 1px 2px rgba(0,0,0,.35),0 10px 28px rgba(0,0,0,.4);
+  background:var(--bg);color-scheme:dark}
+.shell[data-theme=dark] :is(.card,.stat,.tw){border-color:rgba(232,195,94,.12);box-shadow:var(--sh),inset 0 1px 0 rgba(255,255,255,.04)}
+.shell>.main{position:relative;z-index:1}
+
+/* Sidebar */
+.shell .side{z-index:2;display:flex;flex-direction:column;gap:2px;padding:14px 12px;color:var(--side-ink);background:var(--side-bg);
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-right:1px solid var(--side-bd);box-shadow:inset -1px 0 0 rgba(255,255,255,.08),10px 0 32px rgba(40,30,10,.08)}
+.side .ico{flex:none;width:20px;height:20px}
+
+/* Top row: logo + name · theme · burger */
+.side-head{display:flex;align-items:center;gap:4px;padding:2px 2px 14px;margin-bottom:6px;border-bottom:1px solid var(--side-bd)}
+.side-btn{flex:none;display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:9px;border:0;background:none;color:var(--side-ink);cursor:pointer;transition:background .12s}
+.side-btn:hover{background:var(--side-hover)}
+.side-btn .ico{width:17px;height:17px}
+.side-btn:focus-visible,.side-user:focus-visible,.um-item:focus-visible{outline:2px solid var(--brand);outline-offset:0}
+.shell .side .logo{flex:1;min-width:0;display:flex;align-items:center;gap:8px;margin:0;padding:0;color:var(--side-ink);font-size:.78rem;line-height:1.2}
+.shell .side .logo .mark{background:none;border:0;padding:0}
+.shell .side .logo .mark img{height:30px}
+.side .logo-name{min-width:0;overflow-wrap:anywhere}
+
+/* Links */
+.shell .side a.n{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:.55em .8em;border:0;border-radius:10px;background:none;color:var(--side-ink);font:inherit;font-size:.93rem;text-decoration:none;cursor:pointer;transition:background .12s}
+.shell .side a.n:hover{background:var(--side-hover)}
+.shell .side a.n.on{background:var(--brand);color:var(--on-brand);font-weight:700;box-shadow:0 6px 16px rgba(199,154,43,.35)}
+.shell .side .grp{color:var(--side-mut)}
+.side .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Account: avatar button + menu */
+.side-acct{margin-top:auto;padding-top:8px;border-top:1px solid var(--side-bd)}
+.side-user{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:0;border-radius:12px;background:none;color:var(--side-ink);font:inherit;text-align:left;cursor:pointer;transition:background .12s}
+.side-user:hover,.side-user[aria-expanded=true]{background:var(--side-hover)}
+.side-user .lbl,.um-head span:last-child{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.side-user small,.um-head small{color:var(--side-mut);font-size:.75rem}
+.avatar{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--brand);color:var(--on-brand);font-weight:800;font-size:.85rem}
+.user-menu{position:fixed;z-index:50;width:230px;padding:8px;border-radius:14px;color:var(--side-ink);background:rgba(30,25,16,.94);border:1px solid var(--side-bd);
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.um-head{display:flex;align-items:center;gap:10px;padding:6px 6px 10px;margin-bottom:6px;border-bottom:1px solid var(--side-bd)}
+.um-item{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:.55em .7em;border:0;border-radius:9px;background:none;color:var(--side-ink);font:inherit;font-size:.92rem;text-decoration:none;cursor:pointer}
+.um-item:hover{background:var(--side-hover)}
+.um-item.danger{color:#f2a59b}
+.um-item .ico{width:18px;height:18px}
+
+@media (min-width:901px){
+  /* Floating rounded panel: 16px gap from the window edges, column = panel + that gap. */
+  .shell{grid-template-columns:calc(var(--side-w) + 16px) 1fr;transition:grid-template-columns .2s}
+  .shell .side{top:16px;height:calc(100vh - 32px);margin:16px 0 16px 16px;border:1px solid var(--side-bd);border-radius:24px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 18px 40px rgba(20,14,5,.28)}
+  .shell[data-side=mini]{--side-w:78px}
+  .shell[data-side=mini] .side{padding:14px 10px;border-radius:20px}
+  .shell[data-side=mini] .side-head{flex-direction:column;gap:10px}
+  .shell[data-side=mini] .side .lbl,.shell[data-side=mini] .side .logo-name,.shell[data-side=mini] .side-theme{display:none}
+  .shell[data-side=mini] .side .logo{flex:none;justify-content:center}
+  .shell[data-side=mini] .side .logo .mark img{height:26px}
+  .shell[data-side=mini] .side a.n,.shell[data-side=mini] .side-user{justify-content:center;padding:.65em 0}
+  .shell[data-side=mini] .side .grp{font-size:0;padding:0;margin:8px 10px;border-top:1px solid var(--side-bd)}
+}
+
+/* Dark theme: the design system has a few hard-coded light colours. */
+.shell[data-theme=dark] :is(input,select,textarea){background:#18140d;border-color:#4a3f28;color:var(--ink)}
+.shell[data-theme=dark] .btn.ghost{background:#262015;color:var(--ink);border-color:var(--line)}
+.shell[data-theme=dark] .btn.ghost:hover{background:#2f2819}
+.shell[data-theme=dark] th{background:#1b170f}
+.shell[data-theme=dark] tbody tr:hover{background:#262015}
+.shell[data-theme=dark] .badge{background:#33291a;color:#ecd9a3}
+.shell[data-theme=dark] .b-ok{background:rgba(42,122,71,.25);color:#8fd6a8}
+.shell[data-theme=dark] .b-warn{background:rgba(199,154,43,.22);color:#f0cf74}
+.shell[data-theme=dark] .b-err{background:rgba(178,58,43,.25);color:#f2a59b}
+.shell[data-theme=dark] .b-info{background:rgba(176,112,40,.25);color:#f0b77a}
+.shell[data-theme=dark] .flash.ok{background:rgba(42,122,71,.18);color:#9fe0b6;border-color:rgba(42,122,71,.45)}
+.shell[data-theme=dark] .flash.err{background:rgba(178,58,43,.18);color:#f5b3aa;border-color:rgba(178,58,43,.45)}
+.shell[data-theme=dark] .notice{background:rgba(199,154,43,.12);border-color:rgba(199,154,43,.4)}
+.shell[data-theme=dark] :is(.chip,.ref){background:#262015}
+.shell[data-theme=dark] .timeline li{border-left-color:#5a4a26}
+
+/* Module header: sticky glass bar at the top of every page with the title, the page's filters and actions. */
+@media (min-width:901px){.shell .main{padding-top:16px}}
+.mhead{position:sticky;top:16px;z-index:5;display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px;margin:0 0 20px;padding:12px 18px;border-radius:20px;
+  color:var(--side-ink);background:var(--side-bg);border:1px solid var(--side-bd);color-scheme:dark;
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 30px rgba(20,14,5,.22)}
+.mh-title{display:flex;align-items:center;gap:10px;min-width:0}
+.mhead h1{margin:0;font-size:1.3rem;color:#fff;white-space:nowrap}
+.mh-tools{flex:1 1 420px;min-width:0}
+.mh-actions{flex:0 0 auto;margin-left:auto}
+.mhead .filters{margin:0;gap:8px;align-items:end;justify-content:flex-end}
+.mhead .filters>div{flex:0 1 auto;min-width:0}
+.mhead .filters .grow{flex:1 1 200px;max-width:340px}
+.mhead .filters label{display:block;margin:0 0 3px;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--side-mut)}
+.mhead :is(input,select){width:100%;padding:.42em .7em;font-size:.88rem;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:var(--side-ink)}
+.mhead :is(input,select):focus{border-color:var(--brand)}
+.mhead input::placeholder{color:var(--side-mut)}
+.mhead option{color:#1e1a12;background:#fff}
+.mhead input[type=date]{width:150px}.mhead input[type=month]{width:160px}
+.mhead .btn{padding:.45em 1em;font-size:.88rem}
+.mhead .btn.ghost{background:transparent;color:var(--side-ink);border-color:rgba(255,255,255,.2)}
+.mhead .btn.ghost:hover{background:var(--side-hover)}
+
+/* Modal (<dialog>): centred (the CSS reset zeroes dialog margins), dark gold glass title bar like the module header,
+   body in the page theme, light dim + slight blur behind. Used by Check-ins and New sale on Airfare Sales. */
+.modal{width:min(920px,calc(100vw - 32px));max-height:calc(100vh - 64px);margin:auto;padding:0;overflow:hidden;border:1px solid var(--line);border-radius:20px;
+  background:var(--card);color:var(--ink);box-shadow:0 30px 70px rgba(20,14,5,.35)}
+.modal[open]{display:flex;flex-direction:column}
+.modal.narrow{width:min(720px,calc(100vw - 32px))}
+.modal.wide{width:min(760px,calc(100vw - 32px));max-height:min(720px,calc(100vh - 64px))}
+/* Compact form inside the New sale modal: smaller headings, inputs and gaps. */
+.modal.wide .modal-body{padding:14px 20px 18px}
+.modal.wide .modal-body h3{margin:12px 0 8px;font-size:.95rem}
+.modal.wide .modal-body h3:first-child{margin-top:0}
+.modal.wide .grid{gap:10px 12px}
+.modal.wide .field{margin-bottom:8px}
+.modal.wide .field label{font-size:.8rem;margin-bottom:3px}
+.modal.wide :is(input,select,textarea){padding:.45em .65em;font-size:.88rem}
+.modal.wide .dd-btn{height:34px;font-size:.88rem}
+.modal.wide .small{font-size:.75rem}
+.modal::backdrop{background:rgba(20,15,6,.32);backdrop-filter:blur(1.5px);-webkit-backdrop-filter:blur(1.5px)}
+.modal-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px 14px 22px;
+  background:var(--side-bg);color:var(--side-ink);border-bottom:1px solid var(--side-bd)}
+.modal-head h3{margin:0;color:#fff;font-size:1.1rem}
+.modal-head .muted{color:var(--side-mut)}
+.modal-x{display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:9px;background:none;color:var(--side-ink);font-size:1.5rem;line-height:1;cursor:pointer}
+.modal-x:hover{background:var(--side-hover)}
+.modal-x:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.modal-body{flex:1 1 auto;min-height:0;padding:18px 22px 22px;overflow:auto}
+.mhead .btn .badge{vertical-align:1px}
+
+
+/* Fixed-height table: fills the space under the header and scrolls inside (both directions); the column headings stay visible. */
+.tw.tw-fixed{height:calc(100vh - 230px);min-height:320px;overflow:auto}
+.tw.tw-fixed thead th{position:sticky;top:0;z-index:1}
+.tw.tw-fixed .empty{height:200px;vertical-align:middle}
+@media print{.tw.tw-fixed{height:auto;overflow:visible}}
+
+/* Airfare header: date menu (presets + custom range), same height as the header buttons. */
+.af-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.af-bar>*{flex:0 1 auto}
+.mhead .af-bar :is(input,select),.af-date-btn{height:38px;box-sizing:border-box}
+.af-date{position:relative}
+.af-date-btn{display:inline-flex;align-items:center;gap:8px;padding:0 10px 0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);
+  color:var(--side-ink);font:inherit;font-size:.88rem;white-space:nowrap;cursor:pointer}
+.af-date-btn:hover,.af-date-btn[aria-expanded=true]{border-color:rgba(255,255,255,.3)}
+.af-date-btn.set{border-color:var(--brand);color:#fff}
+.af-date-btn>svg:first-child{color:var(--brand)}
+.af-date-btn>svg:last-child{opacity:.7}
+.af-date-btn:focus-visible,.af-item:focus-visible,.af-by button:focus-visible,.icon-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.af-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:264px;padding:8px;border-radius:14px;color:var(--side-ink);background:rgba(30,25,16,.97);
+  border:1px solid var(--side-bd);box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.af-by{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:3px;margin-bottom:6px;border-radius:10px;background:rgba(255,255,255,.06)}
+.af-by button{padding:.4em .3em;border:0;border-radius:8px;background:none;color:var(--side-mut);font:inherit;font-size:.78rem;cursor:pointer}
+.af-by button.on{background:var(--brand);color:var(--on-brand);font-weight:700}
+.af-item{display:block;width:100%;padding:.5em .7em;border:0;border-radius:8px;background:none;color:var(--side-ink);font:inherit;font-size:.9rem;text-align:left;cursor:pointer}
+.af-item:hover{background:var(--side-hover)}
+.af-item.on{color:#e8c35e;font-weight:700}
+.af-item.on::after{content:"✓";float:right}
+.af-menu hr{border:0;border-top:1px solid var(--side-bd);margin:6px 2px}
+/* Custom range: a side panel to the left of the menu (the menu sits at the right edge of the header), its bottom level with the menu's. */
+.af-custom-wrap{position:relative}
+.af-has-side::before{content:"\2039";margin-right:8px;color:var(--side-mut)}
+.af-item.open{background:var(--side-hover)}
+.af-custom{position:absolute;right:calc(100% + 16px);bottom:-9px;width:240px;display:grid;gap:10px;padding:14px;border-radius:14px;color:var(--side-ink);
+  background:rgba(30,25,16,.97);border:1px solid var(--side-bd);box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.af-custom-title{font-weight:700;font-size:.9rem;color:#fff}
+.af-err{margin:0;font-size:.8rem;color:#f2a59b}
+.mhead .af-apply{width:100%;justify-content:center;height:36px}
+.af-custom label{display:grid;gap:4px;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--side-mut)}
+.af-cal{position:relative;display:block}
+.af-cal>svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--brand);pointer-events:none}
+.mhead .af-cal input{width:100%;height:36px;padding-left:34px}
+/* Gold icon-only button (e.g. "+" new sale) */
+.icon-btn{display:inline-grid;place-items:center;width:38px;height:38px;padding:0;border:0;border-radius:10px;background:var(--brand);color:var(--on-brand);
+  text-decoration:none;cursor:pointer;transition:background .12s,transform .12s,box-shadow .12s}
+.icon-btn:hover{background:#d4a736;box-shadow:0 6px 16px rgba(199,154,43,.35);transform:translateY(-1px)}
+.mh-actions .btn{height:38px;display:inline-flex;align-items:center;gap:6px}
+
+/* Table card with a toolbar (search + dropdowns) above the column headings; only the table part scrolls. */
+.tw-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.tw-card>.tw{border:0;border-radius:0;box-shadow:none}
+/* On desktop a page with a table card fills exactly one screen: header, then the card stretches to the bottom edge
+   (lined up with the sidebar) and only its rows scroll. */
+@media (min-width:901px){
+  .main:has(>.tw-card){display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:16px}
+  .main:has(>.tw-card)>*{flex:none}
+  .main:has(>.tw-card)>.tw-card{flex:1 1 auto;min-height:320px;display:flex;flex-direction:column}
+  .tw-card>.tw.tw-fixed{flex:1 1 auto;height:auto;min-height:0}
+  .main:has(>.tw-card)>:is(.pager,p:last-child){margin:10px 0 0}
+}
+@media (max-width:900px){.tw-card>.tw.tw-fixed{height:60vh}}
+.tw-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+.tw-tools :is(input,select){height:38px;box-sizing:border-box;padding:.4em .7em;font-size:.9rem}
+.tw-tools select{width:auto;max-width:220px;cursor:pointer}
+.tt-search{position:relative;flex:1 1 260px;max-width:420px}
+.tt-search>svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none}
+.tt-search input{padding-left:34px}
+@media (max-width:700px){.tt-search{flex-basis:100%;max-width:none}.tw-tools select{flex:1 1 140px;max-width:none}}
+.tt-export{margin-left:auto;height:38px;display:inline-flex;align-items:center;gap:6px;padding:0 1em}
+
+/* The date menu and its custom-range panel follow the page theme: light here (the dark values above apply in dark mode).
+   Re-pointing the --side-* tokens restyles every rule that uses them. */
+.shell:not([data-theme=dark]) :is(.af-menu,.af-custom){--side-ink:var(--ink);--side-mut:var(--mut);--side-bd:var(--line);--side-hover:rgba(199,154,43,.12);
+  background:#fff;color:var(--ink);border-color:var(--line);box-shadow:0 18px 40px rgba(40,30,10,.18);color-scheme:light}
+.shell:not([data-theme=dark]) .af-by{background:#f3eedd}
+.shell:not([data-theme=dark]) .af-item.on{color:var(--brand-t)}
+.shell:not([data-theme=dark]) .af-custom-title{color:var(--ink)}
+.shell:not([data-theme=dark]) .af-err{color:var(--err)}
+.shell:not([data-theme=dark]) .af-custom input{background:#fff;border-color:#d8d0bb;color:var(--ink)}
+
+/* Themed dropdown (components/dropdown.tsx): button looks like an input, list follows the page theme. */
+.dd{position:relative;display:inline-block}
+.dd-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;width:100%;height:38px;padding:0 10px 0 12px;border:1px solid #d8d0bb;border-radius:10px;
+  background:#fff;color:var(--ink);font:inherit;font-size:.9rem;white-space:nowrap;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+.dd-btn:hover{border-color:var(--brand)}
+.dd-btn[aria-expanded=true],.dd-btn:focus-visible{outline:none;border-color:var(--brand-d);box-shadow:0 0 0 3px rgba(199,154,43,.3)}
+.dd-btn>svg{flex:none;color:var(--mut);transition:transform .12s}
+.dd-btn[aria-expanded=true]>svg{transform:rotate(180deg)}
+.dd.sm .dd-btn{height:32px;font-size:.85rem}
+.dd-list{position:fixed;z-index:80;max-height:300px;overflow:auto;margin:0;padding:6px;list-style:none;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);color:var(--ink);box-shadow:0 18px 40px rgba(40,30,10,.18)}
+.dd-list li{padding:.5em .75em;border-radius:8px;font-size:.9rem;white-space:nowrap;cursor:pointer}
+.dd-list li.act{background:rgba(199,154,43,.14)}
+.dd-list li.on{color:var(--brand-t);font-weight:700}
+.dd-list li.on::after{content:"✓";float:right;margin-left:14px}
+.shell[data-theme=dark] .dd-btn{background:#18140d;border-color:#4a3f28;color:var(--ink)}
+.shell[data-theme=dark] .dd-list{box-shadow:0 18px 40px rgba(0,0,0,.45)}
+
+/* Themed date / time pickers (components/date-time-picker.tsx): trigger reuses .dd-btn, popover follows the page theme. */
+.dp{display:block}
+.dp-btn{justify-content:flex-start;width:100%}
+.dp-btn>svg{color:var(--brand)}
+.dp-btn.empty>span{color:var(--mut)}
+.dp-btn.bad{border-color:var(--err)}
+.dp-pop{position:fixed;z-index:80;width:288px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);box-shadow:0 18px 40px rgba(40,30,10,.18)}
+.shell[data-theme=dark] .dp-pop{box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dp-head strong{font-size:.95rem}
+.dp-head button,.dp-grid button,.tp-col button,.dp-link{border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.dp-head button{display:grid;place-items:center;width:30px;height:30px;border-radius:8px}
+.dp-head button:hover{background:rgba(199,154,43,.14)}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-wd{padding:4px 0;text-align:center;font-size:.7rem;font-weight:700;color:var(--mut)}
+.dp-grid button{height:34px;border-radius:8px;font-size:.88rem}
+.dp-grid button:hover:not(:disabled){background:rgba(199,154,43,.14)}
+.dp-grid button.today{box-shadow:inset 0 0 0 1px var(--brand)}
+.dp-grid button.on{background:var(--brand);color:var(--on-brand);font-weight:700}
+.dp-grid button:disabled{opacity:.3;cursor:not-allowed}
+.dp-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.dp-link{padding:.3em .5em;border-radius:7px;color:var(--brand-t);font-weight:700;font-size:.85rem}
+.dp-link:hover:not(:disabled){background:rgba(199,154,43,.14)}
+.dp-link:disabled{opacity:.4;cursor:not-allowed}
+.tp-pop{width:236px}
+.tp-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.tp-col{display:flex;flex-direction:column;gap:2px;max-height:200px;overflow:auto;padding-right:2px}
+.tp-col button{padding:.4em 0;border-radius:8px;font-size:.88rem;text-align:center}
+.tp-col button:hover{background:rgba(199,154,43,.14)}
+.tp-col button.on{background:var(--brand);color:var(--on-brand);font-weight:700}
+.dp-head button:focus-visible,.dp-grid button:focus-visible,.tp-col button:focus-visible,.dp-link:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.modal.wide .dp-btn{height:34px}
+/* Totals row stays visible at the bottom of a fixed-height table (Monitoring Finances). */
+.tw.tw-fixed tfoot td{position:sticky;bottom:0;z-index:1;background:var(--card);font-weight:700;border-top:2px solid var(--line);border-bottom:0}

@@ -93,4 +93,4 @@ body.pub{display:flex;flex-direction:column}body.pub>main{flex:1 0 auto}
 @media (max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}h1{font-size:1.5rem}.hero{padding:48px 0 56px}.section{padding:44px 0}dl.kv{grid-template-columns:1fr}.charts{grid-template-columns:1fr}.cta-band{padding:26px}}
 @supports not (backdrop-filter:blur(1px)){.glass{background:rgba(60,45,18,.85)}.pubhead{background:#fff}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
-@media print{body{background:#fff}.side,.pubhead,.footer,.noprint,.menu,.filters,.pager{display:none!important}.shell{display:block}.main{padding:0}.card,.stat,.tw{box-shadow:none}.card{break-inside:avoid}}
+@media print{body{background:#fff}.side,.mhead .filters,.mhead .mh-actions,.pubhead,.footer,.noprint,.menu,.filters,.pager{display:none!important}.shell{display:block}.main{padding:0}.card,.stat,.tw{box-shadow:none}.card{break-inside:avoid}}

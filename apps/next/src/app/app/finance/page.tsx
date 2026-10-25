@@ -4,21 +4,35 @@ import * as B from '@/lib/biz';
 import * as U from '@/lib/util';
 import { flat } from '@/lib/list';
 import { financeDetail, period } from '@/lib/queries/owner';
-import { Page } from '@/components/ui';
+import { airfareSummary } from '@/lib/queries/airfare';
+import { Page, Stat, Stats } from '@/components/ui';
 import { PeriodFilter } from '@/components/owner-bits';
 
-export const metadata = { title: 'Financial Reports' };
+export const metadata = { title: 'Sales' };
 
 export default async function Finance(props: PageProps<'/app/finance'>) {
   await requireUser('owner');
   const per = period(flat(await props.searchParams));
   const f = await B.finance(per.from, per.to);
-  const { byService, expCat, owing } = await financeDetail(per.from, per.to);
+  const [{ byService, expCat, owing }, air] = await Promise.all([financeDetail(per.from, per.to), airfareSummary(per.from, per.to)]);
   const peso = U.peso;
+  const rng = `from=${per.from}&to=${per.to}`;
   return (
-    <Page title="Financial Reports">
+    <Page title="Sales" filters={
       <PeriodFilter per={per} exportHref={`/api/finance/export?period=${per.key}&from=${per.from}&to=${per.to}`} />
+    }>
       <p className="muted">Period: <strong>{per.from}</strong> to <strong>{per.to}</strong> · Currency: PHP · Time zone: Asia/Manila</p>
+
+      <h2>Airfare sales</h2>
+      <Stats>
+        <Stat n={air.n} label="Sales (excl. cancelled)" href={`/app/airfare?${rng}`} />
+        <Stat n={air.pax} label="Passengers (PAX)" href={`/app/airfare?${rng}`} />
+        <Stat n={peso(air.total)} label="Total amount collected" href={`/app/airfare?${rng}`} />
+        <Stat n={peso(air.sc)} label="Service charges" href={`/app/airfare?${rng}`} />
+        <Stat n={peso(air.income)} label="Agency income (SC − card fees)" tone={air.income >= 0 ? 'pos' : 'neg'} href={`/app/airfare?${rng}`} />
+      </Stats>
+
+      <h2>Bookings</h2>
 
       <div className="stats">
         <div className="stat"><div className="n">{peso(f.booking_sales)}</div><div className="l">Total booking sales (quoted + confirmed + completed)</div></div>

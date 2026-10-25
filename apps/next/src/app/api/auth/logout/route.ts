@@ -6,5 +6,5 @@ export const POST = api(async (req) => {
   const user = await currentUser();
   await audit({ user, ip: clientIp(req) }, 'logout', 'user', user?.id, '');
   await endSession();
-  return ok(undefined, { redirect: '/' });
+  return ok(undefined, { redirect: '/login' });
 });

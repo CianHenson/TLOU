@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ApiForm, Field, Submit } from './form';
 import { WEEKDAYS } from '@/lib/types';
 
-interface E { id?: number; name?: string; email?: string; username?: string; role: string; active: number; can_expenses?: number; sched_start: string; sched_end: string; grace_min: number; break_min: number; workdays: string }
+interface E { id?: number; name?: string; email?: string; username?: string; role: string; designation?: string; active: number; can_expenses?: number; sched_start: string; sched_end: string; grace_min: number; break_min: number; workdays: string }
 
 export function EmployeeForm({ e, isNew }: { e: E; isNew: boolean }) {
   const days = String(e.workdays || '').split(',');
@@ -16,6 +16,7 @@ export function EmployeeForm({ e, isNew }: { e: E; isNew: boolean }) {
         <Field name="username" label="Username *" defaultValue={e.username} attrs={{ required: true, maxLength: 40, autoComplete: 'off' }} />
         <Field name="password" label={isNew ? 'Initial password *' : 'Reset password (leave blank to keep)'} type="password" attrs={{ autoComplete: 'new-password', minLength: 10, required: isNew }}
           hint="Min 10 characters with letters and numbers. The employee must change it at first login." />
+        <Field name="designation" label="Designation" defaultValue={e.designation} hint="Job title shown in Staff Attendance, e.g. Ticketing Officer." attrs={{ maxLength: 80 }} />
         <Field name="role" label="Role" type="select" emptyLabel={null} defaultValue={e.role} options={[['employee', 'Employee'], ['owner', 'Owner / Administrator']]} />
         <div className="field"><label>Permissions</label>
           <label style={{ fontWeight: 400 }}><input type="checkbox" name="can_expenses" defaultChecked={!!e.can_expenses} /> Can record/view business expenses</label>

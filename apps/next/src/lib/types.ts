@@ -64,7 +64,11 @@ export const OPEN_STATUSES = STATUSES.filter((s) => !['Completed', 'Cancelled', 
 export const BOOKING_STATUSES = ['Quoted', 'Confirmed', 'Completed', 'Cancelled'];
 export const SERVICE_TYPES = ['Domestic flight', 'International flight', 'Hotel reservation', 'Travel package', 'Group booking', 'Other travel service'];
 export const METHODS = ['Cash', 'GCash', 'Maya', 'Bank transfer', 'Credit/debit card', 'Check', 'Other'];
-export const EXPENSE_CATS = ['Office supplies', 'Internet & utilities', 'Transportation', 'Rent', 'Salaries', 'Marketing', 'Other operational'];
+/** The client's finance sheet columns, in sheet order (Finance Monitoring pivots expenses on these). */
+export const EXPENSE_CATS = ['Operational', 'Staff & Payroll', 'Marketing & Advertising', 'Ticketing & Booking', 'Transportation & Vehicle',
+  'Administrative & Legal', 'Insurance & Risk', 'Miscellaneous'];
+export const CHECKIN_STATUSES = ['Pending', 'Done', 'Rebooked', 'No-show', 'Cancelled'];
+export const AIRLINES = ['Philippine Airlines', 'Cebu Pacific', 'AirAsia', 'Royal Air', 'Airswift', 'Sunlight Air'];
 export const CONTACT_METHODS = ['Phone call', 'SMS', 'Email', 'Viber', 'Messenger', 'WhatsApp'];
 
 export const REQUEST_SOURCES = ['Walk-in', 'Phone call', 'Email', 'Social media'];

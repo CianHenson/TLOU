@@ -14,8 +14,8 @@ export const POST = api(async (req) => {
   if (Object.keys(errors).length) return invalid(errors);
   const hash = await hashPassword(pw);
   const id = await tx(async (d) => {
-    const i = (await d.run(`INSERT INTO users (name,email,username,password_hash,role,active,can_expenses,must_change_pw,sched_start,sched_end,grace_min,break_min,workdays,created_at) VALUES (?,?,?,?,?,?,?,1,?,?,?,?,?,?)`,
-      [e.name, e.email, e.username, hash, e.role, e.active, e.can_expenses, e.sched_start, e.sched_end, e.grace_min, e.break_min, e.workdays, now()])).id;
+    const i = (await d.run(`INSERT INTO users (name,email,username,password_hash,role,designation,active,can_expenses,must_change_pw,sched_start,sched_end,grace_min,break_min,workdays,created_at) VALUES (?,?,?,?,?,?,?,?,1,?,?,?,?,?,?)`,
+      [e.name, e.email, e.username, hash, e.role, e.designation || null, e.active, e.can_expenses, e.sched_start, e.sched_end, e.grace_min, e.break_min, e.workdays, now()])).id;
     await d.run('UPDATE users SET emp_no=? WHERE id=?', ['EMP-' + String(i).padStart(4, '0'), i]);
     return i;
   });

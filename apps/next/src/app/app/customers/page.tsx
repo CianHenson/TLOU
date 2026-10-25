@@ -18,12 +18,13 @@ export default async function Customers(props: PageProps<'/app/customers'>) {
     (SELECT COUNT(*) FROM requests r WHERE r.customer_id=c.id) AS n_req, (SELECT COUNT(*) FROM bookings b WHERE b.customer_id=c.id) AS n_bk
     FROM customers c ${w.sql} ${sort}`, w.p);
   return (
-    <Page title="Customers">
+    <Page title="Customers" filters={
       <form className="filters" method="get" key={list.qs}>
-        <div className="grow"><label htmlFor="q">Search</label><input id="q" name="q" defaultValue={q.q || ''} placeholder="Name, phone, email or customer ID" /></div>
-        <div><label><input type="checkbox" name="owing" value="1" defaultChecked={!!q.owing} /> With balance owing</label></div>
-        <div className="btnrow"><button className="btn">Search</button><Link className="btn ghost" href="/app/customers">Reset</Link><Link className="btn alt" href="/app/customers/new">+ New customer</Link></div>
-      </form>
+          <div className="grow"><label htmlFor="q">Search</label><input id="q" name="q" defaultValue={q.q || ''} placeholder="Name, phone, email or customer ID" /></div>
+          <div><label><input type="checkbox" name="owing" value="1" defaultChecked={!!q.owing} /> With balance owing</label></div>
+          <div className="btnrow"><button className="btn">Search</button><Link className="btn ghost" href="/app/customers">Reset</Link><Link className="btn alt" href="/app/customers/new">+ New customer</Link></div>
+        </form>
+    }>
       <div className="tw"><table>
         <thead><tr><SortTh list={list} label="ID" k="code" /><SortTh list={list} label="Name" k="name" /><th>Contact</th><th className="num">Requests</th><th className="num">Bookings</th><SortTh list={list} label="Balance owing" k="balance" cls="num" /><SortTh list={list} label="Registered" k="date" /></tr></thead>
         <tbody>

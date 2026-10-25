@@ -6,7 +6,7 @@ import { ApiForm, Submit } from '@/components/form';
 export const metadata = { title: 'My Profile' };
 
 export default async function Profile() {
-  const me = await requireUser('user', { allowMustChange: true });
+  const me = await requireUser();
   const u = (await db.get('SELECT * FROM users WHERE id=?', [me.id]))!;
   return (
     <Page title="My Profile">
@@ -17,7 +17,6 @@ export default async function Profile() {
           <p className="muted small">To change these details, ask the owner.</p></div>
         <ApiForm action="/api/profile/password" className="card" reset>
           <h2>Change password</h2>
-          {me.must_change_pw && <div className="flash err">You must change your password before continuing.</div>}
           <div className="field"><label htmlFor="c">Current password</label><input id="c" type="password" name="current" autoComplete="current-password" required /></div>
           <div className="field"><label htmlFor="n">New password</label><input id="n" type="password" name="next" minLength={10} autoComplete="new-password" required /><div className="small muted">At least 10 characters, with letters and numbers.</div></div>
           <div className="field"><label htmlFor="k">Confirm new password</label><input id="k" type="password" name="confirm" autoComplete="new-password" required /></div>

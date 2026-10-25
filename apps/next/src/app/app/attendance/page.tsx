@@ -21,11 +21,12 @@ export default async function Attendance({ searchParams }: PageProps<'/app/atten
   const rec = (await db.get('SELECT * FROM attendance WHERE user_id=? AND day=?', [u.id, today])) ?? null;
   const sum = B.summarize(u, rows), sched = B.schedFor(u);
   return (
-    <Page title="My Attendance">
+    <Page title="My Attendance" filters={
+      <form className="filters" method="get"><div><label htmlFor="m">Month</label><input id="m" type="month" name="month" defaultValue={ym} /></div><div className="btnrow"><button className="btn ghost">Show</button></div></form>
+    }>
       <ClockCard name={me.name} rec={rec} mins={B.workedMin(u, rec)} />
       <div className="card small muted">Your schedule: {sched.start}–{sched.end} · grace period {sched.grace} min · unpaid break {sched.brk} min · workdays {sched.days.map((d) => WEEKDAYS[d]).join(', ')}. Times are recorded by the server in Asia/Manila time.</div>
 
-      <form className="filters" method="get"><div><label htmlFor="m">Month</label><input id="m" type="month" name="month" defaultValue={ym} /></div><div className="btnrow"><button className="btn ghost">Show</button></div></form>
       <Stats>
         <Stat n={sum.days} label="Days attended" />
         <Stat n={sum.late} label="Late arrivals" />
