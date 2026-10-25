@@ -1,0 +1,39 @@
+/* Login: split hero + glass card, using the site's own gold / dark theme (see .hero in theme.css). */
+.lg{position:relative;color:#fff;overflow:hidden;min-height:100vh;display:grid;grid-template-columns:1fr minmax(320px,400px);align-items:center;gap:clamp(24px,6vw,110px);
+  padding:48px clamp(24px,13vw,260px) 48px clamp(24px,6vw,96px);
+  background:radial-gradient(900px 480px at 85% 10%,rgba(214,170,60,.38),transparent 60%),radial-gradient(700px 420px at 5% 100%,rgba(176,112,40,.35),transparent 60%),linear-gradient(135deg,#17130b,#2a2112 60%,#3b2c12)}
+.lg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:56px 56px;mask-image:linear-gradient(180deg,#000,transparent 85%);-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.lg>*{position:relative}
+.lg-hero{max-width:460px}
+.lg-kicker{letter-spacing:.3em;text-transform:uppercase;font-size:.72rem;font-weight:700;color:#e8c35e;margin:0 0 .8rem}
+.lg-hero h1{font-size:clamp(2.1rem,4.6vw,3.4rem);line-height:1.08;font-weight:800;margin:0}
+.lg-hero h1 em{font-style:normal;color:#e8c35e}
+.lg-hero hr{width:48px;height:3px;border:0;background:var(--brand);margin:1.2rem 0}
+.lg-lead{color:#e4dcc6;font-size:1rem;line-height:1.6;margin:0 0 1.2rem}
+.lg-hero ul{list-style:none;padding:0;margin:0;display:grid;gap:.7rem;font-size:.95rem}
+.lg-hero li::before{content:"✓";display:inline-grid;place-items:center;width:20px;height:20px;margin-right:.7rem;border-radius:50%;border:1px solid #e8c35e;color:#e8c35e;font-size:.7rem}
+.lg-card{background:var(--glass-d);border:1px solid var(--glass-db);border-radius:20px;padding:2rem 1.8rem;backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.lg-card h2{text-align:center;font-size:1.3rem;font-weight:700;margin:0 0 .3rem;color:#fff}
+.lg-sub{text-align:center;color:#e4dcc6;font-size:.8rem;margin:0 0 1.4rem}
+.lg-field{margin-bottom:1rem}
+.lg-field label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem}
+.lg-card input:not([type=checkbox]){width:100%;box-sizing:border-box;background:var(--dark);color:#fff;border:1.5px solid rgba(255,255,255,.45);border-radius:10px;padding:.7rem .9rem;font:inherit;font-size:.9rem}
+.lg-card input:not([type=checkbox]):focus{outline:0;border-color:var(--brand);box-shadow:0 0 0 3px rgba(199,154,43,.35)}
+.lg-pw{position:relative}
+.lg-pw input{padding-right:3rem}
+.lg-pw button{position:absolute;right:.35rem;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:36px;height:36px;background:none;border:0;border-radius:8px;color:#e8c35e;cursor:pointer}
+.lg-pw button:hover{background:rgba(255,255,255,.1)}
+.lg-pw button:focus-visible{outline:2px solid var(--brand)}
+.lg-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:0 0 1rem;font-size:.85rem;line-height:1}
+.lg-forgot{color:#e8c35e;text-decoration:none}
+.lg-forgot:hover{text-decoration:underline}
+.lg-remember{display:flex;align-items:center;gap:.55rem;cursor:pointer;margin:0;width:fit-content}
+.lg-remember input{width:16px;height:16px;margin:0;accent-color:var(--brand);cursor:pointer}
+.lg-btn{width:100%;border:0;border-radius:10px;padding:.8rem;font:inherit;font-weight:700;color:var(--on-brand);cursor:pointer;background:var(--brand);transition:background .12s}
+.lg-btn:hover{background:#d4a736}
+.lg-btn:disabled{opacity:.7;cursor:wait}
+.lg-back{display:flex;align-items:center;justify-content:center;gap:.5rem;box-sizing:border-box;width:100%;margin-top:.7rem;padding:.75rem;border:0;border-radius:10px;font-weight:600;font-size:.9rem;color:#fff;text-decoration:none;background:transparent;transition:background .12s}
+.lg-back:hover{background:rgba(255,255,255,.1)}
+@media (max-width:1000px){.lg{padding-right:clamp(24px,6vw,96px)}}
+@media (max-width:820px){.lg{grid-template-columns:1fr;align-content:center;padding:40px 24px}.lg-hero{max-width:none}}
+@media (max-width:480px){.lg-card{padding:1.5rem 1.2rem}}

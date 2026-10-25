@@ -21,8 +21,10 @@ function secret() {
 
 const mac = (body: string) => crypto.createHmac('sha256', secret()).update(body).digest('base64url');
 
-export function signSession(uid: number) {
-  const body = Buffer.from(JSON.stringify({ uid, exp: Date.now() + MAX_AGE * 1000 })).toString('base64url');
+export const REMEMBER_MAX_AGE = 60 * 60 * 24 * 30; // "Remember me": 30 days
+
+export function signSession(uid: number, maxAge = MAX_AGE) {
+  const body = Buffer.from(JSON.stringify({ uid, exp: Date.now() + maxAge * 1000 })).toString('base64url');
   return `${body}.${mac(body)}`;
 }
 
@@ -39,7 +41,7 @@ export function readSession(token: string | undefined | null): number | null {
   } catch { return null; }
 }
 
-export const cookieOptions = () => ({
-  httpOnly: true, sameSite: 'lax' as const, secure: process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false', path: '/', maxAge: MAX_AGE,
+export const cookieOptions = (maxAge = MAX_AGE) => ({
+  httpOnly: true, sameSite: 'lax' as const, secure: process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false', path: '/', maxAge,
 });
 

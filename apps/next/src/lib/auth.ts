@@ -5,7 +5,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { db } from './db';
-import { COOKIE, cookieOptions, readSession, signSession } from './session';
+import { COOKIE, MAX_AGE, REMEMBER_MAX_AGE, cookieOptions, readSession, signSession } from './session';
 
 export interface SessionUser {
   id: number; username: string; name: string; role: 'owner' | 'employee'; emp_no: string;
@@ -14,8 +14,9 @@ export interface SessionUser {
 export const isOwner = (u: SessionUser) => u.role === 'owner';
 
 /** Set the session cookie (login) - for route handlers. */
-export async function startSession(uid: number) {
-  (await cookies()).set(COOKIE, signSession(uid), cookieOptions());
+export async function startSession(uid: number, remember = false) {
+  const maxAge = remember ? REMEMBER_MAX_AGE : MAX_AGE;
+  (await cookies()).set(COOKIE, signSession(uid, maxAge), cookieOptions(maxAge));
 }
 export async function endSession() {
   (await cookies()).set(COOKIE, '', { ...cookieOptions(), maxAge: 0 });
