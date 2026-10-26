@@ -22,8 +22,21 @@ export function FlashProvider({ children }: { children: ReactNode }) {
 
 export const useFlash = () => useContext(FlashCtx);
 
-export function FlashBar() {
-  const { flash } = useFlash();
+/** Inline message by default; with `toast` it floats bottom-right, auto-hides and can be dismissed (used inside the /app shell). */
+export function FlashBar({ toast = false }: { toast?: boolean }) {
+  const { flash, clear } = useFlash();
+  useEffect(() => {
+    if (!toast || !flash) return;
+    const t = setTimeout(clear, flash.type === "err" ? 7000 : 4000);
+    return () => clearTimeout(t);
+  }, [toast, flash, clear]);
   if (!flash) return null;
-  return <div className={`flash ${flash.type}`} role="status">{flash.msg}</div>;
+  if (!toast) return <div className={`flash ${flash.type}`} role="status">{flash.msg}</div>;
+  return (
+    <div className={`toast ${flash.type}`} role={flash.type === "err" ? "alert" : "status"} aria-live="polite">
+      <span className="toast-ico" aria-hidden="true">{flash.type === "ok" ? "✓" : "!"}</span>
+      <span className="toast-msg">{flash.msg}</span>
+      <button type="button" className="toast-x" onClick={clear} aria-label="Dismiss">×</button>
+    </div>
+  );
 }

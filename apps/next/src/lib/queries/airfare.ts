@@ -66,3 +66,12 @@ export function airfareInput(b: Record<string, FormDataEntryValue | undefined>) 
   if (!Number.isFinite(a.card_fee) || a.card_fee < 0) errors.card_fee = 'Enter a valid amount.';
   return { a, errors };
 }
+
+/** Monthly airfare totals (pesos) for a list of 'YYYY-MM': amount collected from customers and agency income (SC − card fee). */
+export async function airfareMonthly(months: string[]) {
+  const rows = await db.all<{ m: string; total: number; sc: number; fee: number }>(
+    `SELECT SUBSTR(txn_date,1,7) AS m, SUM(total_amount) AS total, SUM(service_charge) AS sc, SUM(card_fee) AS fee
+     FROM airfare_sales WHERE checkin_status!='Cancelled' AND SUBSTR(txn_date,1,7) BETWEEN ? AND ? GROUP BY 1`, [months[0], months[months.length - 1]]);
+  const by = new Map(rows.map((r) => [r.m, r]));
+  return months.map((m) => { const r = by.get(m); return { m, total: Number(r?.total ?? 0) / 100, income: (Number(r?.sc ?? 0) - Number(r?.fee ?? 0)) / 100 }; });
+}

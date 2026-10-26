@@ -29,15 +29,15 @@ export function Page({ title, actions, filters, children }: { title: string; act
         {filters && <div className="mh-tools">{filters}</div>}
         {actions && <div className="row noprint mh-actions">{actions}</div>}
       </header>
-      <FlashBar />
+      <FlashBar toast />
       {children}
     </>
   );
 }
 
 /** Dashboard stat tile; `href` makes it a link; `tone` colours the number. */
-export function Stat({ n, label, href, tone }: { n: ReactNode; label: string; href?: string; tone?: 'pos' | 'neg' }) {
-  const body = (<><div className="n">{n}</div><div className="l">{label}</div></>);
+export function Stat({ n, label, href, tone, icon }: { n: ReactNode; label: string; href?: string; tone?: 'pos' | 'neg'; icon?: string }) {
+  const body = (<>{icon && <span className="si" aria-hidden="true">{icon}</span>}<div className="n">{n}</div><div className="l">{label}</div></>);
   return href
     ? <Link href={href} className={`stat ${tone ?? ''}`} style={{ textDecoration: 'none', color: 'inherit' }}>{body}</Link>
     : <div className={`stat ${tone ?? ''}`}>{body}</div>;
