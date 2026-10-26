@@ -8,7 +8,7 @@ import { counts as getCounts, ownerDashboard, period, staffDashboard } from '@/l
 import { airfareMonthly, airfareSummary, needsCheckin } from '@/lib/queries/airfare';
 import { Page, Stat, Stats } from '@/components/ui';
 import { ClockCard } from '@/components/clockcard';
-import { PeriodFilter } from '@/components/owner-bits';
+import { DateRangeFilter } from '@/components/list-filters';
 import { OwnerCharts } from '@/components/owner-charts';
 import { AirfareTrend, AttendanceDonut, MoneyTrend, Panel } from '@/components/dash-charts';
 import { AnnouncementCard } from '@/components/announcement-card';
@@ -56,7 +56,8 @@ export default async function Dashboard(props: PageProps<'/app'>) {
     );
   }
 
-  const per = period(flat(await props.searchParams));
+  const sp = flat(await props.searchParams);
+  const per = period(sp);
   const months = U.monthsBack(per.to, 12);
   const [{ f, emp, chart }, air, soon, airMonths] = await Promise.all([ownerDashboard(per.from, per.to), airfareSummary(per.from, per.to), needsCheckin(48), airfareMonthly(months)]);
   const rng = `from=${per.from}&to=${per.to}`;
@@ -71,7 +72,8 @@ export default async function Dashboard(props: PageProps<'/app'>) {
   const open = attn.filter((a) => a.n > 0);
   return (
     <Page title="Dashboard" filters={
-      <PeriodFilter per={per} />
+      <div className="af-bar"><DateRangeFilter today={U.today()} showBy={false} allowAll={false}
+        initial={{ by: 'txn', from: per.from, to: per.to, range: per.key === 'custom' ? sp.range || 'custom' : ['month', 'year'].includes(per.key) ? per.key : 'custom' }} /></div>
     }>
       <div className="dash"><div className="dash-main">
       {hello}

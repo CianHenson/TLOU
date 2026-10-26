@@ -1,73 +1,92 @@
-import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as U from '@/lib/util';
-import { flat, paginate } from '@/lib/list';
-import { activeStaff, dayRows } from '@/lib/queries/owner';
-import { attendanceLogQuery } from '@/lib/queries/attendance-log';
+import { flat } from '@/lib/list';
+import { ATT_STATUSES } from '@/lib/types';
+import { activeEmployees, allEmployees, attendanceRecords, availableUsers, leaveRequests, payrollList, recordRange, workSummary } from '@/lib/queries/payroll';
 import { Page, Pager } from '@/components/ui';
-import { ApiForm, Submit } from '@/components/form';
+import { HolidaysButton } from '@/components/att-holidays';
+import { DateRangeFilter, TableFilters } from '@/components/list-filters';
+import { AttendanceTable } from '@/components/att-records';
+import { AddEmployeeButton, EmployeeTable } from '@/components/att-employees';
+import { RequestsButton } from '@/components/att-requests';
+import { GeneratePayrollButton, PayrollTable } from '@/components/att-payroll';
+import { SectionSelect } from '@/components/att-section';
 
-export const metadata = { title: 'Attendance Monitoring' };
+export const metadata = { title: 'Attendance Monitoring & Payroll' };
 
-const CLS: Record<string, string> = { Present: 'b-ok', Late: 'b-warn', Absent: 'b-err', Incomplete: 'b-err', 'Clocked in': 'b-info', 'Approved leave': 'b-info' };
+const TABS = ['attendance', 'employees', 'payroll'];
+const PER_PAGE = 50;
 
 export default async function AttendanceMonitor(props: PageProps<'/app/attendance-monitor'>) {
   await requireUser('owner');
   const q = flat(await props.searchParams);
-  const today = U.today(), day = U.isDate(q.day) ? q.day : today;
-  const [rows, leaves, staff] = await Promise.all([
-    dayRows(day),
-    db.all(`SELECT l.*, u.name FROM leaves l LEFT JOIN users u ON u.id=l.user_id WHERE l.day>=? ORDER BY l.day LIMIT 50`, [U.addDays(today, -30)]),
-    activeStaff(),
+  const tab = TABS.includes(q.tab) ? q.tab : 'attendance';
+  const td = U.today();
+  const [mFrom, mTo] = U.monthRange(td.slice(0, 7));
+  const [requests, all, staff, leaves] = await Promise.all([
+    leaveRequests(), allEmployees(), activeEmployees(),
+    db.all(`SELECT l.*, u.name FROM leaves l LEFT JOIN users u ON u.id=l.user_id WHERE l.day>=? AND l.request_id IS NULL ORDER BY l.day LIMIT 50`, [U.addDays(td, -30)]),
   ]);
-  const hm = (s?: string | null) => (s ? s.slice(11, 16) : '');
-  const [logSql, logP, range] = attendanceLogQuery(q);
-  const log = await paginate(q, logSql, logP, 31);
+  const uid = U.intOrNull(q.uid);
+  const empOpts: [string, string][] = [['', 'All employees'], ...all.map((e): [string, string] => [String(e.id), e.active ? e.name : `${e.name} (deactivated)`])];
+  const monthLabel = new Date(td + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+  let filters: React.ReactNode = null, actions: React.ReactNode = null, body: React.ReactNode;
+  if (tab === 'attendance') {
+    const r = recordRange(q);
+    const statuses = (q.status || '').split(',').filter((s) => ATT_STATUSES.includes(s));
+    const search = U.str(q.q, 60).toLowerCase();
+    const rows = (await attendanceRecords({ ...r, uid, statuses })).filter((x) => !search || String(x.name).toLowerCase().includes(search));
+    const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE)), page = Math.min(pages, Math.max(1, parseInt(q.page, 10) || 1));
+    const qs = new URLSearchParams(Object.entries(q).filter(([k, v]) => v && k !== 'page')).toString();
+    const active = [`dates ${U.longDate(r.from)} to ${U.longDate(r.to)}`, uid && `employee: ${all.find((e) => e.id === uid)?.name ?? uid}`, statuses.length && `status: ${statuses.join(', ')}`, search && `search "${q.q}"`].filter(Boolean);
+    filters = <div className="af-bar"><DateRangeFilter today={td} showBy={false} allowAll={false} initial={{ by: 'txn', from: r.from, to: r.to, range: r.range }} /></div>;
+    body = (
+      <>
+        <div className="tw-card">
+          <TableFilters lead={<SectionSelect value="attendance" />} q={q.q || ''} placeholder="Search employee name" exportHref={`/api/attendance-monitor/export?${qs}`} exportTitle="Export the filtered records as CSV"
+            exportNote={`Only the filtered records will be exported (${active.join(', ')}).`} dropdowns={[
+              { key: 'uid', label: 'Employee', value: uid ? String(uid) : '', options: empOpts },
+              { key: 'status', label: 'Status', value: statuses.join(','), options: [['', 'All statuses'], ...ATT_STATUSES], multiple: true, noun: 'statuses' },
+            ]} />
+          <AttendanceTable rows={rows.slice((page - 1) * PER_PAGE, page * PER_PAGE)} totalMins={rows.reduce((a, x) => a + x.mins, 0)} totalCount={rows.length} />
+          {pages > 1 && <div className="tw-foot"><Pager list={{ page, pages, total: rows.length, qs }} /></div>}
+        </div>
+      </>
+    );
+  } else if (tab === 'employees') {
+    const search = U.str(q.q, 60).toLowerCase();
+    const [users, rows] = await Promise.all([
+      availableUsers(),
+      Promise.all(all.filter((e) => !search || `${e.name} ${e.username} ${e.designation ?? ''}`.toLowerCase().includes(search))
+        .map(async (e) => ({ ...e, ...(await workSummary(e, mFrom, td)) }))),
+    ]);
+    actions = <AddEmployeeButton users={users} />;
+    body = (
+      <>
+        <div className="tw-card"><TableFilters lead={<SectionSelect value="employees" />} q={q.q || ''} placeholder="Search employee name" dropdowns={[]} /><EmployeeTable rows={rows} monthLabel={monthLabel} month={[mFrom, mTo]} searching={!!search} /></div>
+      </>
+    );
+  } else {
+    const from = U.isDate(q.from) ? q.from : '', to = U.isDate(q.to) ? q.to : '';
+    const search = U.str(q.q, 60).toLowerCase();
+    const rows = (await payrollList({ uid, from, to })).filter((x) => !search || String(x.name).toLowerCase().includes(search));
+    actions = <GeneratePayrollButton employees={staff} today={td} />;
+    filters = <div className="af-bar"><DateRangeFilter today={td} showBy={false} initial={{ by: 'txn', from, to, range: q.range || (from || to ? 'custom' : '') }} /></div>;
+    body = (
+      <>
+        <div className="tw-card">
+          <TableFilters lead={<SectionSelect value="payroll" />} q={q.q || ''} placeholder="Search employee name" dropdowns={[{ key: 'uid', label: 'Employee', value: uid ? String(uid) : '', options: empOpts }]} />
+          <PayrollTable rows={rows} />
+        </div>
+      </>
+    );
+  }
+
   return (
-    <Page title="Attendance Monitoring" filters={
-      <form className="filters" method="get"><div><label>Date</label><input type="date" name="day" defaultValue={day} max={today} /></div>
-          <div className="btnrow"><button className="btn">Show</button><a className="btn ghost" href={`/api/attendance-monitor/export?day=${day}`}>Export CSV</a></div></form>
-    }>
-      <p className="muted small">Live view as of {U.now().slice(11, 16)} (Asia/Manila). Absences are only flagged after the employee&apos;s shift end.</p>
-      <div className="tw"><table><thead><tr><th>Employee</th><th>Schedule</th><th>Status</th><th>Time in</th><th>Time out</th><th className="num">Late (min)</th><th className="num">Hours</th><th>Correct record</th></tr></thead><tbody>
-        {rows.map(({ u, d }) => (
-          <tr key={u.id}><td>{u.name}<div className="small muted">{u.designation || u.emp_no}</div></td><td className="nowrap">{u.sched_start}–{u.sched_end} (+{u.grace_min})</td><td><span className={`badge ${CLS[d.status] || ''}`}>{d.status}</span></td>
-            <td>{hm(d.rec?.time_in) || '—'}</td><td>{hm(d.rec?.time_out) || '—'}</td><td className="num">{d.late_min || ''}</td><td className="num">{d.mins ? U.hrs(d.mins) : ''}</td>
-            <td><ApiForm action="/api/attendance/correct" className="row">
-              <input type="hidden" name="user_id" value={u.id} /><input type="hidden" name="day" value={day} />
-              <input type="time" name="time_in" defaultValue={hm(d.rec?.time_in)} required style={{ width: 105 }} /><input type="time" name="time_out" defaultValue={hm(d.rec?.time_out)} style={{ width: 105 }} />
-              <input name="reason" placeholder="Reason (required)" required maxLength={500} style={{ width: 150 }} /><Submit className="btn ghost sm">Save</Submit></ApiForm></td></tr>
-        ))}</tbody></table></div>
-
-      <h2 style={{ marginTop: 28 }}>Staff attendance log</h2>
-      <form className="filters" method="get" key={log.qs}>
-        <input type="hidden" name="day" value={day} />
-        <div><label>Employee</label><select name="uid" defaultValue={q.uid || ''}><option value="">All</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-        <div><label>From</label><input type="date" name="lfrom" defaultValue={range.from} max={today} /></div><div><label>To</label><input type="date" name="lto" defaultValue={range.to} max={today} /></div>
-        <div className="btnrow"><button className="btn">Show</button><a className="btn ghost" href={`/api/attendance-monitor/log-export?${log.qs}`}>Export CSV</a></div></form>
-      <div className="tw"><table><thead><tr><th>Name</th><th>Date</th><th>Time in</th><th>Time out</th><th>Designation</th></tr></thead><tbody>
-        {log.rows.map((r) => (
-          <tr key={`${r.name}-${r.day}`}><td>{r.name}</td><td className="nowrap">{r.day}</td>
-            <td>{hm(r.time_in) || '—'}{r.is_late ? <> <span className="badge b-warn">Late</span></> : null}</td><td>{hm(r.time_out) || '—'}</td><td>{r.designation || '—'}</td></tr>
-        ))}
-        {!log.rows.length && <tr><td colSpan={5} className="empty">No attendance recorded for these dates.</td></tr>}
-      </tbody></table></div>
-      <Pager list={log} />
-
-      <div className="grid g2" style={{ marginTop: 20, alignItems: 'start' }}>
-        <ApiForm action="/api/attendance/leave" reset className="card"><h3>Record approved leave / holiday</h3>
-          <div className="grid g2"><div className="field"><label>Type</label><select name="kind"><option>Leave</option><option>Holiday</option></select></div>
-            <div className="field"><label>Date</label><input type="date" name="day" required /></div></div>
-          <div className="field"><label>Employee (for leave)</label><select name="user_id"><option value="">— All (holiday) —</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-          <div className="field"><label>Note</label><input name="note" maxLength={200} /></div><Submit>Save</Submit></ApiForm>
-        <div className="card"><h3>Recent &amp; upcoming leaves / holidays</h3><ul className="timeline">
-          {leaves.map((l) => (
-            <li key={l.id}>{l.day} · <strong>{l.kind}</strong> · {l.name || 'Everyone'} <span className="muted small">{l.note}</span>{' '}
-              <ApiForm action={`/api/attendance/leave/${l.id}/delete`} style={{ display: 'inline' }}><Submit className="btn ghost sm" confirm="Remove this entry?">Remove</Submit></ApiForm></li>
-          ))}
-          {!leaves.length && <li className="muted small">None recorded.</li>}</ul></div>
-      </div>
+    <Page title="Attendance Monitoring & Payroll" filters={filters} actions={<><HolidaysButton rows={leaves} staff={staff} /><RequestsButton rows={requests} />{actions}</>}>
+      {body}
     </Page>
   );
 }

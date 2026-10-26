@@ -3,8 +3,10 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { AppNav, SideTools, type NavItem } from '@/components/app-nav';
+import { ConfirmHost } from '@/components/confirm';
 import { currentUser, isOwner } from '@/lib/auth';
 import { settings } from '@/lib/biz';
+import { ROLE_LABELS } from '@/lib/types';
 import { redirect } from 'next/navigation';
 import './shell.css';
 
@@ -18,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const nav: NavItem[] = owner ? [
     { label: 'Dashboard', href: '/app' },
     { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'Sales', href: '/app/finance' }, { label: 'Monitoring Finances', href: '/app/finance-monitor' },
-    { group: 'People' }, { label: 'Attendance Monitoring', href: '/app/attendance-monitor' }, { label: 'User Management', href: '/app/employees' },
+    { group: 'People' }, { label: 'Attendance & Payroll', href: '/app/attendance-monitor' }, { label: 'User Management', href: '/app/employees' },
   ] : [
     { label: 'Dashboard', href: '/app' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'My Attendance', href: '/app/attendance' }, { label: 'Customer Management', href: '/app/customers' }, { label: 'Travel Requests', href: '/app/requests' }, { label: 'Bookings', href: '/app/bookings' },
     { label: 'Transactions & Payments', href: '/app/payments' }, ...(me.can_expenses ? [{ label: 'Expenses', href: '/app/expenses' }] : []),
@@ -32,9 +34,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <SideTools theme={theme} collapsed={collapsed}>
           <Link className="logo" href="/app" title={S.business_name}><span className="mark"><img src="/logo.png" alt="" /></span><span className="logo-name">{S.business_name}</span></Link>
         </SideTools>
-        <AppNav items={nav} userName={me.name} roleLabel={owner ? 'Owner' : 'Employee'} />
+        <AppNav items={nav} userName={me.name} roleLabel={ROLE_LABELS[me.role] ?? me.role} />
       </aside>
       <div className="main">{children}</div>
+      <ConfirmHost />
     </div>
   );
 }

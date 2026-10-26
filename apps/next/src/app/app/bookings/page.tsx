@@ -3,8 +3,10 @@ import { requireUser } from '@/lib/auth';
 import { BOOKING_STATUSES, SERVICE_TYPES, bookingSelect, decorate } from '@/lib/biz';
 import { flat, paginate, sortClause, where } from '@/lib/list';
 import { peso, str, intOrNull, isDate } from '@/lib/util';
-import { Page, Pager, SortTh } from '@/components/ui';
+import { FootLine, Page, Pager, SortTh } from '@/components/ui';
 import { staffList, BK_BADGE, PAY_BADGE } from '@/lib/queries/core';
+import { rowMenu } from '@/lib/menu';
+import { RowMenus } from '@/components/context-menu';
 
 export const metadata = { title: 'Bookings' };
 
@@ -37,11 +39,12 @@ export default async function Bookings(props: PageProps<'/app/bookings'>) {
         <div><label>To</label><input type="date" name="to" defaultValue={q.to || ''} /></div>
         <div className="btnrow"><button className="btn">Filter</button><Link className="btn ghost" href="/app/bookings">Reset</Link><Link className="btn alt" href="/app/bookings/new">+ New booking</Link></div>
       </form>
-      <div className="tw"><table>
+      <div className="tw-card"><RowMenus className="tw tw-fixed tw-fm" empty={[{ label: 'New booking', href: '/app/bookings/new' }]}><table>
         <thead><tr><SortTh list={list} label="Booking" k="ref" /><SortTh list={list} label="Customer" k="customer" /><th>Service</th><SortTh list={list} label="Status" k="status" /><SortTh list={list} label="Total" k="total" cls="num" /><th className="num">Paid</th><th className="num">Balance</th><th>Payment</th><th>Employee</th><SortTh list={list} label="Date" k="date" /></tr></thead>
         <tbody>
           {list.rows.map((b) => (
-            <tr key={b.id} className={b.status === 'Cancelled' ? 'off' : ''}>
+            <tr key={b.id} className={b.status === 'Cancelled' ? 'off' : ''} {...rowMenu([{ label: 'Open booking', href: `/app/bookings/${b.id}` },
+              b.status !== 'Cancelled' && { label: 'Edit booking', href: `/app/bookings/${b.id}/edit` }, { label: 'Open customer', href: `/app/customers/${b.customer_id}` }])}>
               <td><Link href={`/app/bookings/${b.id}`}>{b.ref}</Link></td><td><Link href={`/app/customers/${b.customer_id}`}>{b.customer}</Link></td><td>{b.service_type}</td>
               <td><span className={`badge ${BK_BADGE[b.status] ?? ''}`}>{b.status}</span></td>
               <td className="num">{peso(b.total)}</td><td className="num">{peso(b.paid)}</td><td className="num">{peso(b.balance)}</td>
@@ -49,8 +52,11 @@ export default async function Bookings(props: PageProps<'/app/bookings'>) {
             </tr>
           ))}
           {!list.rows.length && <tr><td colSpan={10} className="empty">No bookings found.</td></tr>}
-        </tbody></table></div>
-      <Pager list={list} />
+          {!!list.rows.length && <tr className="fill"><td colSpan={10} /></tr>}
+        </tbody>
+        {!!list.rows.length && <FootLine cols={10} total={list.total} />}
+        </table></RowMenus>
+        {list.pages > 1 && <div className="tw-foot"><Pager list={list} /></div>}</div>
     </Page>
   );
 }

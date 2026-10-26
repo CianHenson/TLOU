@@ -71,7 +71,7 @@
 .shell[data-theme=dark] .btn.ghost{background:#262015;color:var(--ink);border-color:var(--line)}
 .shell[data-theme=dark] .btn.ghost:hover{background:#2f2819}
 .shell[data-theme=dark] th{background:#1b170f}
-.shell[data-theme=dark] tbody tr:hover{background:#262015}
+.shell[data-theme=dark] tbody tr:hover:not(.fill):not(:has(>td.empty)){background:#262015}
 .shell[data-theme=dark] .badge{background:#33291a;color:#ecd9a3}
 .shell[data-theme=dark] .b-ok{background:rgba(42,122,71,.25);color:#8fd6a8}
 .shell[data-theme=dark] .b-warn{background:rgba(199,154,43,.22);color:#f0cf74}
@@ -287,11 +287,11 @@
 .rc-body iframe{width:100%;height:100%;border:0}
 .rc-body img{max-width:100%;max-height:100%;object-fit:contain}
 @media print{.rc-panel{display:none}}
-.tw-fm{position:relative}
-.tw-fm tbody tr[data-id]{cursor:default;user-select:none;-webkit-user-select:none}
-.tw-fm tbody tr.sel,.tw-fm tbody tr.sel:hover{background:rgba(199,154,43,.22)}
-.shell[data-theme=dark] .tw-fm tbody tr.sel{background:rgba(199,154,43,.28)}
-.tw-fm tfoot tr.sel-total td{color:var(--brand-t);border-top:2px solid var(--line)}
+.tw-sel{position:relative}
+.tw-sel tbody tr[data-id]{cursor:default;user-select:none;-webkit-user-select:none}
+.tw-sel tbody tr.sel,.tw-sel tbody tr.sel:hover{background:rgba(199,154,43,.22)}
+.shell[data-theme=dark] .tw-sel tbody tr.sel{background:rgba(199,154,43,.28)}
+.tw-sel tfoot tr.sel-total td{color:var(--brand-t);border-top:2px solid var(--line)}
 .sel-box{position:fixed;z-index:70;pointer-events:none;border:1px solid var(--brand-d);background:rgba(199,154,43,.15);border-radius:3px}
 .ctx-menu{position:fixed;z-index:95;min-width:170px;padding:6px;display:grid;gap:2px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(20,14,5,.3)}
 .ctx-menu button{text-align:left;padding:.5em .75em;background:none;border:0;border-radius:8px;font:inherit;font-size:.9rem;color:inherit;cursor:pointer}
@@ -448,3 +448,189 @@ a.kpi:hover{transform:translateY(-2px);border-color:var(--brand)}
 .clockbar .btn:disabled{opacity:.55}.clockbar .btn.alt:disabled{background:rgba(255,255,255,.08);color:#d9ccaa}
 @media (max-width:700px){.clockbar{padding:16px}.clockbar .row{margin-left:0;width:100%}}
 @media print{.clockbar{display:none}}
+/* Attendance Monitoring & Payroll: section dropdown, status filter in the Requests modal, empty states. */
+.seg{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.seg button{padding:.4em .9em;border-radius:999px;border:1px solid var(--line);background:none;color:inherit;font:inherit;font-size:.88rem;cursor:pointer}
+.seg button.on{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.seg button.on .muted{color:inherit;opacity:.8}
+.empty-state{text-align:center;padding:12px 8px}
+.empty-state p{margin:.3em 0}
+.empty-state .btn{margin-top:10px}
+td.empty strong{display:inline-block;margin-bottom:2px}
+/* Payslip */
+.payslip{max-width:720px;margin:0 auto}
+.payslip .ps-head{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:2px solid var(--brand);padding-bottom:12px;margin-bottom:16px}
+.payslip .ps-head h2{margin:0}
+.payslip .ps-net{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding:14px 16px;border-radius:12px;background:rgba(199,154,43,.14);font-size:1.15rem}
+.payslip table{width:100%;border-collapse:collapse}
+.payslip td{padding:.55em 0;border-bottom:1px solid var(--line)}
+.payslip td.num{text-align:right}
+@media print{.payslip{max-width:none}.payslip .ps-net{background:none;border:2px solid #000}}
+.dd-section .dd-btn{font-weight:700;border-color:var(--brand);color:var(--brand-t)}
+.seg button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+/* Empty fixed-height tables: the message row fills the table so the text sits in the middle. */
+.tw-fm tbody:has(>tr>td.empty) tr.fill{display:none}
+.tw-fm tbody tr:has(>td.empty){height:100%}
+/* Pager / record count as the last footer row inside a table card, so the card reaches the bottom like the sidebar. */
+.tw-card>.tw-foot{flex:none;border-top:1px solid var(--line);padding:10px 16px}
+.tw-card>.tw-foot :is(.pager,p){margin:0}
+.tw-card>.tw-foot .pager{justify-content:flex-end}
+/* Single-line table footer: label on the left, total on the right edge. */
+.foot-line{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+/* Confirmation dialog (components/confirm.tsx). */
+.confirm p{margin:0 0 16px;line-height:1.5}
+.confirm .row{justify-content:flex-end}
+/* The header's custom-date-range panel reused as a form field popover (DateRangeField, e.g. Generate payroll → Custom). */
+.af-custom.rng-pop{position:fixed;z-index:80;right:auto;bottom:auto}
+.rng-pop .af-cal input{width:100%;height:36px;padding-left:34px}
+.rng-pop .af-apply{width:100%;justify-content:center;height:36px}
+/* FootLine (components/ui.tsx) on any table, fixed-height or not. */
+tfoot td:has(>.foot-line){font-weight:700;background:var(--card);border-top:2px solid var(--line);border-bottom:0}
+tfoot tr.sel-total td:has(>.foot-line){color:var(--brand-t)}
+/* Even column spacing on list tables: columns share the width equally (a <colgroup> gives long-text columns a bigger
+   share) instead of the browser's content-based sizing, which leaves uneven gaps. Very wide tables (11+ columns, e.g.
+   Airfare Sales) keep automatic sizing and scroll sideways. Headers and dates may wrap inside their column, and number
+   columns keep extra room on the right so they don't touch the next column. */
+.tw table:not(:has(>thead>tr>th:nth-child(11))){table-layout:fixed}
+.tw table:not(:has(>thead>tr>th:nth-child(11))) :is(th,td.nowrap){white-space:normal}
+.tw table :is(th,td).num{padding-right:28px}
+.tw table td{overflow-wrap:anywhere}
+
+/* ---- Module header + table colours per theme ----
+   Light: the module header is white like the cards (its --side-* tokens are re-pointed to the page palette, which
+   restyles the title, inputs, ghost buttons and date menu button). Dark: header and table cards share the espresso
+   colour, on a warmer, lighter brown page background with a soft gold glow (instead of near-black). */
+.shell:not([data-theme=dark]) .mhead{--side-ink:var(--ink);--side-mut:var(--mut);--side-bd:var(--line);--side-hover:rgba(199,154,43,.12);
+  color:var(--ink);background:rgba(255,255,255,.94);border-color:var(--line);color-scheme:light;box-shadow:var(--sh)}
+.shell:not([data-theme=dark]) .mhead h1{color:var(--ink)}
+.shell:not([data-theme=dark]) .mhead :is(input,select){background:#fff;border-color:#d8d0bb;color:var(--ink)}
+.shell:not([data-theme=dark]) .mhead .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+.shell:not([data-theme=dark]) .mhead .btn.ghost:hover{background:#fffaf0;border-color:var(--brand)}
+.shell:not([data-theme=dark]) .af-date-btn{background:#fff;border-color:var(--line);color:var(--ink)}
+.shell:not([data-theme=dark]) .af-date-btn:hover,.shell:not([data-theme=dark]) .af-date-btn[aria-expanded=true]{border-color:var(--brand)}
+.shell:not([data-theme=dark]) .af-date-btn.set{border-color:var(--brand);color:var(--brand-t)}
+/* Empty message in a sideways-scrolling table (Airfare): kept in the middle of the visible area, not the full width. */
+td.empty:has(>.empty-msg){text-align:left}
+.empty-msg{position:sticky;left:50%;display:inline-block;transform:translateX(-50%);white-space:nowrap}
+/* ==== Dark mode: premium charcoal + warm gold (main content only) ====
+   The sidebar keeps its own glass styling and tokens untouched: every token below is set on the main area and on the
+   popups / dialogs it opens (portaled to .shell), never on .shell itself.
+   Page #0F1011 · panels #111213 · fields #191A1D / #303136 · row dividers #292A2C · gold #D9A51E (hover #E5B52B)
+   · text #F3F0E8 / #A9A59C / #777873. */
+.shell[data-theme=dark]{--bg:#0f1011;background:#0f1011}
+.shell[data-theme=dark] :is(.main,dialog,.rc-panel,.toast){
+  --card:#111213;--field:#191a1d;--field-bd:#303136;--line:#292a2c;--edge:#232427;
+  --ink:#f3f0e8;--mut:#a9a59c;--faint:#777873;--brand:#d9a51e;--brand-d:#e5b52b;--brand-t:#e5b52b;--on-brand:#17130a;
+  --ok:#6fcf97;--err:#f0a196;--sh:0 1px 2px rgba(0,0,0,.4),0 12px 32px rgba(0,0,0,.32);
+  --side-ink:var(--ink);--side-mut:var(--mut);--side-bd:var(--field-bd);--side-hover:rgba(255,255,255,.05);
+  color:var(--ink);color-scheme:dark}
+
+/* Surfaces: header, cards, table cards, KPI / dashboard panels, popups, toasts, receipt panel. */
+.shell[data-theme=dark] :is(.mhead,.card,.stat,.tw,.tw-card,.kpi,.dpanel,.attn a,.attn span,.dd-list,.dp-pop,.ctx-menu,.af-menu,.af-custom,.toast,.rc-panel){
+  background:var(--card);border:1px solid var(--edge);color:var(--ink);box-shadow:var(--sh)}
+.shell[data-theme=dark] .tw-card>.tw{border:0;box-shadow:none;border-radius:0}
+.shell[data-theme=dark] .mhead{border-radius:18px;backdrop-filter:none;-webkit-backdrop-filter:none}
+.shell[data-theme=dark] .mhead h1{color:var(--ink);font-weight:650}
+.shell[data-theme=dark] :is(.card,.tw-card,.kpi,.dpanel){border-radius:16px}
+.shell[data-theme=dark] :is(.dd-list,.dp-pop,.ctx-menu,.af-menu,.af-custom){border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.shell[data-theme=dark] :is(.ann,.annb,.dash-main .stat.neg){background:var(--card)}
+.shell[data-theme=dark] .annb::before{background:var(--brand)}
+.shell[data-theme=dark] :is(.welcome,.clockbar){background:var(--card);border:1px solid var(--edge);box-shadow:var(--sh);color:var(--ink)}
+.shell[data-theme=dark] :is(.welcome h2,.clock-time,.cb-who){color:var(--ink)}
+.shell[data-theme=dark] :is(.welcome p,.clock-date){color:var(--mut)}
+.shell[data-theme=dark] .cb-zone{color:var(--faint)}
+.shell[data-theme=dark] .cb-icon{color:var(--brand);background:var(--field);border-color:var(--field-bd)}
+.shell[data-theme=dark] .clockbar .btn.alt{background:var(--field);border-color:var(--field-bd);color:var(--ink)}
+.shell[data-theme=dark] .clockbar .btn.alt:hover:not(:disabled){border-color:var(--brand-d);background:var(--field)}
+.shell[data-theme=dark] .dash-main .stat .si{background:rgba(217,165,30,.12)}
+.shell[data-theme=dark] .kpi:hover{border-color:rgba(217,165,30,.45)}
+
+/* Fields, dropdown buttons, date controls, search. */
+.shell[data-theme=dark] :is(.main,dialog) :is(input,select,textarea),.shell[data-theme=dark] :is(.dd-btn,.af-date-btn){
+  background:var(--field);border:1px solid var(--field-bd);border-radius:10px;color:var(--ink);box-shadow:none}
+.shell[data-theme=dark] :is(.main,dialog) :is(input,textarea)::placeholder{color:var(--faint)}
+.shell[data-theme=dark] :is(.main,dialog) :is(input,select,textarea):hover:not(:disabled),.shell[data-theme=dark] :is(.dd-btn,.af-date-btn):hover{border-color:#45464c}
+.shell[data-theme=dark] :is(.main,dialog) :is(input,select,textarea):focus,.shell[data-theme=dark] :is(.dd-btn,.af-date-btn):focus-visible,
+.shell[data-theme=dark] :is(.dd-btn,.af-date-btn)[aria-expanded=true]{border-color:var(--brand);box-shadow:0 0 0 3px rgba(217,165,30,.16);outline:none}
+.shell[data-theme=dark] :is(.main,dialog) :is(input,select,textarea):disabled{opacity:.5;cursor:not-allowed}
+.shell[data-theme=dark] :is(.main,dialog) :is(input[type=checkbox],input[type=radio]){accent-color:var(--brand)}
+.shell[data-theme=dark] .af-date-btn.set{border-color:rgba(217,165,30,.55);color:var(--ink)}
+.shell[data-theme=dark] :is(.af-date-btn>svg:first-child,.tt-search>svg,.af-cal>svg){color:var(--brand)}
+.shell[data-theme=dark] .dd-section .dd-btn{border-color:rgba(217,165,30,.55);color:var(--brand-d)}
+.shell[data-theme=dark] :is(.main,dialog) .field label,.shell[data-theme=dark] .mhead .filters label{color:var(--mut)}
+.shell[data-theme=dark] :is(.main,dialog) :is(.field .hint,.small.muted){color:var(--faint)}
+.shell[data-theme=dark] :is(.main,dialog) .field .err{color:var(--err)}
+.shell[data-theme=dark] :is(.main,dialog) .has-err :is(input,select,textarea,.dd-btn){border-color:rgba(240,161,150,.7)}
+
+/* Buttons: gold for primary / add actions; dark with subtle borders for secondary ones, gold on hover. */
+.shell[data-theme=dark] :is(.main,dialog) .btn{background:var(--brand);color:var(--on-brand);border-color:transparent;border-radius:10px}
+.shell[data-theme=dark] :is(.main,dialog) .btn:hover:not(:disabled){background:var(--brand-d);box-shadow:0 6px 18px rgba(217,165,30,.22)}
+.shell[data-theme=dark] :is(.main,dialog) :is(.btn.ghost,.btn.alt){background:var(--field);color:var(--ink);border:1px solid var(--field-bd)}
+.shell[data-theme=dark] :is(.main,dialog) :is(.btn.ghost,.btn.alt):hover:not(:disabled){background:#1e1f23;border-color:var(--brand);color:var(--brand-d);box-shadow:none}
+.shell[data-theme=dark] :is(.main,dialog) .btn.danger{background:#b23a2b;color:#fff}
+.shell[data-theme=dark] :is(.main,dialog) .btn.danger:hover:not(:disabled){background:#c94a39;box-shadow:0 6px 18px rgba(178,58,43,.25)}
+.shell[data-theme=dark] :is(.main,dialog) .btn:disabled{opacity:.45}
+.shell[data-theme=dark] .icon-btn{background:var(--brand);color:var(--on-brand)}
+.shell[data-theme=dark] .icon-btn:hover{background:var(--brand-d);box-shadow:0 6px 18px rgba(217,165,30,.28)}
+.shell[data-theme=dark] :is(.main,dialog) :is(.btn,.icon-btn,a,button):focus-visible{outline:2px solid var(--brand-d);outline-offset:2px}
+.shell[data-theme=dark] .mhead .badge{background:rgba(217,165,30,.16);color:var(--brand-d)}
+
+/* Tables: minimalist rows, muted uppercase headers, subtle dividers, emphasised amounts. */
+.shell[data-theme=dark] :is(.main,dialog) th{background:var(--card);color:var(--faint);font-weight:700;border-bottom:1px solid var(--line)}
+.shell[data-theme=dark] :is(.main,dialog) td{border-bottom:1px solid var(--line);color:var(--ink)}
+.shell[data-theme=dark] :is(.main,dialog) tbody tr:hover:not(.fill):not(:has(>td.empty)){background:rgba(255,255,255,.025)}
+.shell[data-theme=dark] .tw-sel tbody tr.sel,.shell[data-theme=dark] .tw-sel tbody tr.sel:hover{background:rgba(217,165,30,.10);box-shadow:inset 3px 0 0 var(--brand)}
+.shell[data-theme=dark] :is(.main,dialog) td.num{color:var(--ink);font-weight:600}
+.shell[data-theme=dark] :is(.main,dialog) td.num strong{color:#fff;font-weight:700}
+.shell[data-theme=dark] :is(.main,dialog) td .muted{color:var(--faint)}
+.shell[data-theme=dark] :is(.main,dialog) td.empty{color:var(--mut)}
+.shell[data-theme=dark] :is(.main,dialog) :is(td a,.rc-link){color:var(--brand)}
+.shell[data-theme=dark] :is(.main,dialog) :is(td a,.rc-link):hover{color:var(--brand-d)}
+.shell[data-theme=dark] .tw-tools{border-bottom:1px solid var(--line)}
+.shell[data-theme=dark] .tw-card>.tw-foot{border-top:1px solid var(--line)}
+.shell[data-theme=dark] tfoot td:has(>.foot-line){background:var(--card);border-top:1px solid var(--line);font-weight:600;color:var(--mut)}
+.shell[data-theme=dark] .foot-line>span:last-child{color:var(--ink);font-weight:700}
+.shell[data-theme=dark] tfoot tr.sel-total td:has(>.foot-line),.shell[data-theme=dark] tfoot tr.sel-total .foot-line>span{color:var(--brand-d)}
+.shell[data-theme=dark] .sel-box{border-color:var(--brand);background:rgba(217,165,30,.12)}
+
+/* Badges and status pills: low-contrast tints. */
+.shell[data-theme=dark] :is(.main,dialog) .badge{background:rgba(255,255,255,.06);color:#d6d2c8}
+.shell[data-theme=dark] :is(.main,dialog) .b-ok{background:rgba(111,207,151,.12);color:#7fd3a0}
+.shell[data-theme=dark] :is(.main,dialog) .b-warn{background:rgba(217,165,30,.14);color:var(--brand-d)}
+.shell[data-theme=dark] :is(.main,dialog) .b-err{background:rgba(240,161,150,.12);color:var(--err)}
+.shell[data-theme=dark] :is(.main,dialog) .b-info{background:rgba(229,170,110,.13);color:#e7b07a}
+
+/* Popups: dropdown lists, date menu + custom range, date picker, right-click menu. */
+.shell[data-theme=dark] .dd-list li:is(.act,:hover){background:rgba(217,165,30,.12)}
+.shell[data-theme=dark] .dd-list li.on{color:var(--brand-d)}
+.shell[data-theme=dark] :is(.af-menu,.af-custom){--side-ink:var(--ink);--side-mut:var(--mut);--side-bd:var(--line);--side-hover:rgba(217,165,30,.10);color:var(--ink)}
+.shell[data-theme=dark] .af-item.on{color:var(--brand-d)}
+.shell[data-theme=dark] .af-custom-title{color:var(--ink)}
+.shell[data-theme=dark] .af-err{color:var(--err)}
+.shell[data-theme=dark] .af-by{background:var(--field)}
+.shell[data-theme=dark] .af-custom input{background:var(--field);border-color:var(--field-bd);color:var(--ink)}
+.shell[data-theme=dark] :is(.dp-head button,.dp-grid button,.tp-col button):hover:not(:disabled){background:rgba(217,165,30,.12)}
+.shell[data-theme=dark] :is(.dp-grid button.on,.tp-col button.on){background:var(--brand);color:var(--on-brand)}
+.shell[data-theme=dark] .dp-grid button.today{box-shadow:inset 0 0 0 1px var(--brand)}
+.shell[data-theme=dark] .dp-link{color:var(--brand-d)}
+.shell[data-theme=dark] .ctx-menu button:hover{background:rgba(217,165,30,.12)}
+.shell[data-theme=dark] .ctx-menu button.danger{color:var(--err)}
+.shell[data-theme=dark] .ctx-menu button.danger:hover{background:rgba(240,161,150,.10)}
+
+/* Dialogs (incl. confirmation), receipt panel, toasts, request filter pills, misc. */
+.shell[data-theme=dark] dialog.modal{background:var(--card);border:1px solid var(--edge);border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--ink)}
+.shell[data-theme=dark] .modal::backdrop{background:rgba(5,5,6,.62);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.shell[data-theme=dark] .modal-head{background:var(--card);color:var(--ink);border-bottom:1px solid var(--line)}
+.shell[data-theme=dark] .modal-head h3{color:var(--ink)}
+.shell[data-theme=dark] .modal-x{color:var(--mut)}
+.shell[data-theme=dark] .modal-x:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+.shell[data-theme=dark] .rc-head{background:var(--card);color:var(--ink);border-bottom:1px solid var(--line)}
+.shell[data-theme=dark] .rc-actions a{color:var(--brand-d)}
+.shell[data-theme=dark] .rc-body{background:#0c0d0e}
+.shell[data-theme=dark] .toast{border-left:4px solid var(--ok)}
+.shell[data-theme=dark] .toast.err{border-left-color:var(--err)}
+.shell[data-theme=dark] .seg button{background:var(--field);border-color:var(--field-bd);color:var(--ink)}
+.shell[data-theme=dark] .seg button:hover:not(.on){border-color:var(--brand)}
+.shell[data-theme=dark] .seg button.on{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.shell[data-theme=dark] .dsum div{border-bottom-color:var(--line)}
+.shell[data-theme=dark] :is(.more>summary,.dsec,.pager .cur){color:var(--mut)}

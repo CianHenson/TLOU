@@ -1,11 +1,14 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiForm, Field, Submit } from './form';
 import { Dropdown } from './dropdown';
 import { DateField } from './date-time-picker';
 import { moneyInput } from './input-format';
 import { ShellPortal } from './shell-portal';
 import { EXPENSE_CATS, METHODS } from '@/lib/types';
+
+/** Window event that opens the Record expense dialog (the Monitoring Finances table's empty-space menu sends it). */
+export const NEW_EXPENSE_EVT = 'expense:new';
 
 /**
  * Gold "+" header button (Monitoring Finances) that opens the Record expense form in a modal. Posts to /api/expenses
@@ -15,6 +18,11 @@ export function ExpenseModalButton({ today }: { today: string }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [k, setK] = useState(0);
   const close = () => dlg.current?.close();
+  useEffect(() => {
+    const open = () => dlg.current?.showModal();
+    window.addEventListener(NEW_EXPENSE_EVT, open);
+    return () => window.removeEventListener(NEW_EXPENSE_EVT, open);
+  }, []);
   return (
     <>
       <button type="button" className="icon-btn" aria-label="Record expense" title="Record expense" aria-haspopup="dialog" onClick={() => dlg.current?.showModal()}>

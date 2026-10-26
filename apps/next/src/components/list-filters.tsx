@@ -3,10 +3,11 @@
 // search / dropdown / export toolbar above the table. Every change applies at once by merging into the current URL query
 // (the server page re-renders): dropdowns and dates immediately, the search box after a short pause. Each part only
 // touches its own query keys.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Dropdown, type DropdownOption } from './dropdown';
 import { MultiDropdown } from './multi-dropdown';
+import { confirmExport } from './confirm';
 
 const PRESETS: [string, string][] = [['', 'All dates'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['month', 'This month'], ['year', 'This year']];
 
@@ -48,8 +49,11 @@ export interface ToolbarDropdown { key: string; label: string; value: string; op
  * Toolbar above the table columns: search box (query key `q`) and themed dropdowns on the left, Export on the right.
  * A dropdown's '' option clears its key.
  */
-export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitle, exportNote }: {
-  q: string; placeholder: string; dropdowns: ToolbarDropdown[]; exportHref: string; exportTitle: string;
+export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitle, exportNote, lead }: {
+  /** Shown right after the search box, before the dropdowns (e.g. a section switcher). */
+  lead?: ReactNode;
+  /** Without `exportHref` the Export button is left out. */
+  q: string; placeholder: string; dropdowns: ToolbarDropdown[]; exportHref?: string; exportTitle?: string;
   /** When set, Export first asks the user to confirm this message (used to warn that active filters limit the file). */
   exportNote?: string;
 }) {
@@ -69,23 +73,24 @@ export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitl
         <Icon d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM21 21l-4.35-4.35" />
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label="Search" />
       </div>
+      {lead}
       {dropdowns.map((d) => d.multiple
         ? <MultiDropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} noun={d.noun ?? 'items'}
             allLabel={String(Array.isArray(d.options[0]) ? d.options[0][1] : d.options[0])} options={d.options.slice(1).map((o) => (Array.isArray(o) ? o[0] : o))} />
         : <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />)}
-      <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => { if (exportNote && !window.confirm(exportNote)) e.preventDefault(); }}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>
+      {exportHref && <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => confirmExport(e, exportHref, exportNote)}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>}
     </form>
   );
 }
 
-/** Airfare Sales toolbar: search, airline, check-in status, Export. */
-export function AirfareTableFilters({ initial, airlines, statuses, exportHref }: {
-  initial: { q: string; airline: string; status: string }; airlines: string[]; statuses: string[]; exportHref: string;
+/** Airfare Sales toolbar: search, airlines and check-in statuses (multi-select), Export. */
+export function AirfareTableFilters({ initial, airlines, statuses, exportHref, exportNote }: {
+  initial: { q: string; airline: string; status: string }; airlines: string[]; statuses: string[]; exportHref: string; exportNote?: string;
 }) {
   return (
-    <TableFilters q={initial.q} placeholder="Search passenger, PNR, flight no., contact" exportHref={exportHref} exportTitle="Export the filtered sales as CSV" dropdowns={[
-      { key: 'airline', label: 'Airline', value: initial.airline, options: [['', 'All airlines'], ...airlines] },
-      { key: 'status', label: 'Check-in status', value: initial.status, options: [['', 'All check-in statuses'], ...statuses] },
+    <TableFilters q={initial.q} placeholder="Search passenger, PNR, flight no., contact" exportHref={exportHref} exportTitle="Export the filtered sales as CSV" exportNote={exportNote} dropdowns={[
+      { key: 'airline', label: 'Airline', value: initial.airline, options: [['', 'All airlines'], ...airlines], multiple: true, noun: 'airlines' },
+      { key: 'status', label: 'Check-in status', value: initial.status, options: [['', 'All check-in statuses'], ...statuses], multiple: true, noun: 'statuses' },
     ]} />
   );
 }
@@ -93,12 +98,13 @@ export function AirfareTableFilters({ initial, airlines, statuses, exportHref }:
 /**
  * Date menu for the module header: presets and a custom range, plus (with `showBy`) the Transaction / Travel date switch.
  * `allValue` is the `range` value "All dates" writes; pages that default to a period (Monitoring Finances shows this
- * month) pass 'all' so "All dates" survives the round trip instead of falling back to that default.
+ * month) pass 'all' so "All dates" survives the round trip instead of falling back to that default. `allowAll={false}`
+ * hides "All dates" (the Dashboard always shows a bounded period).
  */
-export function DateRangeFilter({ initial, today, showBy = true, allValue = '' }: {
-  initial: { by: string; from: string; to: string; range: string }; today: string; showBy?: boolean; allValue?: string;
+export function DateRangeFilter({ initial, today, showBy = true, allValue = '', allowAll = true }: {
+  initial: { by: string; from: string; to: string; range: string }; today: string; showBy?: boolean; allValue?: string; allowAll?: boolean;
 }) {
-  const presets: [string, string][] = PRESETS.map(([k, l]) => [k || allValue, l]);
+  const presets: [string, string][] = PRESETS.filter(([k]) => k || allowAll).map(([k, l]) => [k || allValue, l]);
   const apply = useApply();
   const [v, setV] = useState(initial);
   const [open, setOpen] = useState(false);

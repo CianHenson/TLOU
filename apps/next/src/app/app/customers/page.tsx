@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { flat, paginate, sortClause, where } from '@/lib/list';
 import { peso, str } from '@/lib/util';
-import { Page, Pager, SortTh } from '@/components/ui';
+import { FootLine, Page, Pager, SortTh } from '@/components/ui';
 import { custBalance } from '@/lib/queries/core';
+import { rowMenu } from '@/lib/menu';
+import { RowMenus } from '@/components/context-menu';
 
 export const metadata = { title: 'Customers' };
 
@@ -25,19 +27,23 @@ export default async function Customers(props: PageProps<'/app/customers'>) {
           <div className="btnrow"><button className="btn">Search</button><Link className="btn ghost" href="/app/customers">Reset</Link><Link className="btn alt" href="/app/customers/new">+ New customer</Link></div>
         </form>
     }>
-      <div className="tw"><table>
+      <div className="tw-card"><RowMenus className="tw tw-fixed tw-fm" empty={[{ label: 'New customer', href: '/app/customers/new' }]}><table>
         <thead><tr><SortTh list={list} label="ID" k="code" /><SortTh list={list} label="Name" k="name" /><th>Contact</th><th className="num">Requests</th><th className="num">Bookings</th><SortTh list={list} label="Balance owing" k="balance" cls="num" /><SortTh list={list} label="Registered" k="date" /></tr></thead>
         <tbody>
           {list.rows.map((c) => (
-            <tr key={c.id}>
+            <tr key={c.id} {...rowMenu([{ label: 'Open customer', href: `/app/customers/${c.id}` }, { label: 'Edit customer', href: `/app/customers/${c.id}/edit` },
+              { label: 'Register request', href: `/app/requests/new?customer=${c.id}` }, { label: 'New booking', href: `/app/bookings/new?customer=${c.id}` }])}>
               <td><Link href={`/app/customers/${c.id}`}>{c.code}</Link></td><td><Link href={`/app/customers/${c.id}`}>{c.name}</Link></td>
               <td>{c.phone}<br /><span className="muted small">{c.email}</span></td>
               <td className="num">{c.n_req}</td><td className="num">{c.n_bk}</td><td className="num">{c.balance ? peso(c.balance) : '—'}</td><td className="nowrap">{c.created_at.slice(0, 10)}</td>
             </tr>
           ))}
           {!list.rows.length && <tr><td colSpan={7} className="empty">No customers found.</td></tr>}
-        </tbody></table></div>
-      <Pager list={list} />
+          {!!list.rows.length && <tr className="fill"><td colSpan={7} /></tr>}
+        </tbody>
+        {!!list.rows.length && <FootLine cols={7} total={list.total} />}
+        </table></RowMenus>
+        {list.pages > 1 && <div className="tw-foot"><Pager list={list} /></div>}</div>
     </Page>
   );
 }

@@ -1,22 +1,28 @@
-import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { flat } from '@/lib/list';
+import { employeeFilters, employeeQuery, roleLabels } from '@/lib/queries/employees';
 import { Page } from '@/components/ui';
+import { TableFilters } from '@/components/list-filters';
+import { UserTable } from '@/components/user-table';
+import { NewUserButton } from '@/components/employee-edit-modal';
 
 export const metadata = { title: 'User Management' };
 
-export default async function Employees() {
-  await requireUser('owner');
-  const users = await db.all('SELECT * FROM users ORDER BY active DESC, name');
+export default async function Employees(props: PageProps<'/app/employees'>) {
+  const me = await requireUser('owner');
+  const meIsOwner = me.role === 'owner';
+  const f = employeeFilters(flat(await props.searchParams), meIsOwner);
+  const [sql, p] = employeeQuery(f);
+  const users = await db.all(sql, p);
   return (
-    <Page title="User Management">
-      <p><Link className="btn alt" href="/app/employees/new">+ New employee</Link></p>
-      <div className="tw"><table><thead><tr><th>No.</th><th>Name</th><th>Username</th><th>Role</th><th>Designation</th><th>Schedule</th><th>Grace</th><th>Expenses</th><th>Status</th><th></th></tr></thead><tbody>
-        {users.map((u) => (
-          <tr key={u.id} className={u.active ? '' : 'off'}><td>{u.emp_no}</td><td>{u.name}</td><td>{u.username}</td><td>{u.role}</td><td>{u.designation || '—'}</td><td>{u.sched_start}–{u.sched_end}</td><td>{u.grace_min} min</td>
-            <td>{u.can_expenses ? 'Yes' : 'No'}</td><td><span className={`badge ${u.active ? 'b-ok' : 'b-err'}`}>{u.active ? 'Active' : 'Deactivated'}</span></td><td><Link href={`/app/employees/${u.id}`}>Edit</Link></td></tr>
-        ))}
-      </tbody></table></div>
+    <Page title="User Management" actions={<NewUserButton />}>
+      <div className="tw-card">
+        <TableFilters q={f.search} placeholder="Search name, username, employee no., designation" dropdowns={[
+          { key: 'role', label: 'Role', value: f.roles.join(','), options: [['', 'All roles'], ...roleLabels(meIsOwner)], multiple: true, noun: 'roles' },
+        ]} />
+        <UserTable rows={users} me={me.id} meIsOwner={meIsOwner} />
+      </div>
     </Page>
   );
 }

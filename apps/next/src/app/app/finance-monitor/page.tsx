@@ -29,7 +29,7 @@ export default async function FinanceMonitor(props: PageProps<'/app/finance-moni
         <TableFilters q={f.search} placeholder="Search expense descriptions" exportHref={`/api/finance-monitor/export?${qs}`} exportTitle="Export the filtered expenses as CSV" exportNote={note} dropdowns={[
           { key: 'category', label: 'Type of expense', value: f.categories.join(','), options: [['', 'All types of expense'], ...EXPENSE_CATS], multiple: true, noun: 'types' },
         ]} />
-        <FinanceTable today={td} rows={rows} total={total} totalLabel={`Total cost${f.categories.length ? ` — ${f.categories.join(', ')}` : ' — all types of expense'}`} />
+        <FinanceTable today={td} rows={rows} total={total} />
       </div>
       <ReceiptPanel />
     </Page>

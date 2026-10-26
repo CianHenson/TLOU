@@ -9,11 +9,18 @@ import { where } from '../list';
 import { CHECKIN_STATUSES } from '../types';
 import { addDays, isDate, now, str, toCents, today } from '../util';
 
+/** Comma-separated multi-select values from the URL (`airline`, `status`). */
+export const airfareFilters = (q: Record<string, string>) => ({
+  airlines: [...new Set((q.airline || '').split(',').map((s) => str(s, 80)).filter(Boolean))],
+  statuses: (q.status || '').split(',').filter((s) => CHECKIN_STATUSES.includes(s)),
+});
+
 export function airfareQuery(q: Record<string, string>): [string, unknown[]] {
   const w = where();
+  const { airlines, statuses } = airfareFilters(q);
   if (q.q) { const l = `%${str(q.q, 60)}%`; w.add('(a.passenger LIKE ? OR a.pnr LIKE ? OR a.flight_no LIKE ? OR a.contact LIKE ?)', l, l, l, l); }
-  if (q.airline) w.add('a.airline=?', str(q.airline, 80));
-  if (CHECKIN_STATUSES.includes(q.status)) w.add('a.checkin_status=?', q.status);
+  if (airlines.length) w.add(`a.airline IN (${airlines.map(() => '?').join(',')})`, ...airlines);
+  if (statuses.length) w.add(`a.checkin_status IN (${statuses.map(() => '?').join(',')})`, ...statuses);
   const col = q.by === 'travel' ? 'a.travel_date' : 'a.txn_date';
   if (isDate(q.from)) w.add(`${col}>=?`, q.from);
   if (isDate(q.to)) w.add(`${col}<=?`, q.to);

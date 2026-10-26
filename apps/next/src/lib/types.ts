@@ -1,7 +1,8 @@
 // Entity shapes mirror the tables in the original lib/schema.js column for column (snake_case, integer
 // centavos, 0/1 flags, Manila 'YYYY-MM-DD HH:mm:ss' timestamps) so porting logic - and later moving to a
 // real database - needs no renaming.
-export type Role = 'owner' | 'employee';
+export type Role = 'owner' | 'admin' | 'employee';
+export const ROLE_LABELS: Record<string, string> = { owner: 'Owner', admin: 'Admin', employee: 'Staff' };
 
 export interface User {
   id: number; emp_no: string; name: string; email: string; username: string; password_hash: string; role: Role;
@@ -73,5 +74,14 @@ export const CONTACT_METHODS = ['Phone call', 'SMS', 'Email', 'Viber', 'Messenge
 
 export const REQUEST_SOURCES = ['Walk-in', 'Phone call', 'Email', 'Social media'];
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** Employee day-off / leave request types and review states (Attendance Monitoring → Requests). */
+export const LEAVE_KINDS = ['Day off', 'Vacation leave', 'Sick leave', 'Emergency leave'];
+export const LEAVE_STATUSES = ['Pending', 'Approved', 'Declined'];
+export const LEAVE_BADGE: Record<string, string> = { Pending: 'b-warn', Approved: 'b-ok', Declined: 'b-err' };
+/** Payroll periods: Weekly / Biweekly run 7 / 14 days from the start date, Monthly is the calendar month of the start date. */
+export const PAY_PERIODS = ['Weekly', 'Biweekly', 'Monthly', 'Custom'];
+/** Daily attendance statuses (see biz.daily) and their badge colours. */
+export const ATT_BADGE: Record<string, string> = { Present: 'b-ok', Late: 'b-warn', Absent: 'b-err', Incomplete: 'b-err', 'Clocked in': 'b-info', 'Approved leave': 'b-info', Holiday: 'b-info' };
+export const ATT_STATUSES = ['Present', 'Late', 'Clocked in', 'Incomplete', 'Absent', 'Approved leave', 'Holiday'];
 // Row shapes joined/decorated by queries are loosely typed on purpose; pages cast as needed.
 export type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any

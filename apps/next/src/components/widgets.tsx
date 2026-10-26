@@ -1,10 +1,16 @@
 'use client';
 // Small client-side behaviours that were data-* attributes in the old app.js.
 import { useEffect, useRef, useState, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { confirmExport } from './confirm';
 
 /** window.print() */
 export function PrintButton({ children = 'Print', className = 'btn ghost sm' }: { children?: ReactNode; className?: string }) {
   return <button type="button" className={className} onClick={() => window.print()}>{children}</button>;
+}
+
+/** Download link that first asks the user to confirm `note` (in the app's confirm dialog) when set — e.g. that active filters limit an export. */
+export function ExportLink({ href, note, children, className = 'btn ghost' }: { href: string; note?: string; children: ReactNode; className?: string }) {
+  return <a className={className} href={href} onClick={(e) => confirmExport(e, href, note)}>{children}</a>;
 }
 
 /** Philippine-time clock, offset from the server time so a wrong PC clock cannot mislead (display only). */

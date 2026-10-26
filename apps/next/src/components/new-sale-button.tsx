@@ -1,7 +1,10 @@
 'use client';
 import { ShellPortal } from './shell-portal';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AirfareForm } from './airfare-form';
+
+/** Window event that opens the New sale dialog (the Airfare table's empty-space menu sends it). */
+export const NEW_SALE_EVT = 'sale:new';
 
 /**
  * Gold "+" header button that opens the New airfare sale form in a modal (<dialog>, top layer). On save the dialog
@@ -11,6 +14,11 @@ export function NewSaleButton({ today }: { today: string }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [k, setK] = useState(0);
   const close = () => dlg.current?.close();
+  useEffect(() => {
+    const open = () => dlg.current?.showModal();
+    window.addEventListener(NEW_SALE_EVT, open);
+    return () => window.removeEventListener(NEW_SALE_EVT, open);
+  }, []);
   return (
     <>
       <button type="button" className="icon-btn" aria-label="New sale" title="New sale" aria-haspopup="dialog" onClick={() => dlg.current?.showModal()}>

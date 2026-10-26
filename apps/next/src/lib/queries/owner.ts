@@ -4,13 +4,17 @@ import { db } from '../db';
 import * as B from '../biz';
 import * as U from '../util';
 import type { Row } from '../types';
+import { activeEmployees } from './payroll';
 
 export const PERIODS: [string, string][] = [['day', 'Day'], ['month', 'This month'], ['quarter', 'This quarter'], ['year', 'This year'], ['custom', 'Custom range']];
 
-/** Resolve a period selection (day/month/quarter/year/custom) to { from, to, key }. */
+/**
+ * Resolve a period selection (day/month/quarter/year/custom) to { from, to, key }. Without `period`, explicit
+ * `from`/`to` dates (from the header date menu, whose preset name is in `range`) are used as a custom range.
+ */
 export function period(q: Record<string, string | undefined>) {
   const t = U.today();
-  let from: string, to: string, key = q.period || '';
+  let from: string, to: string, key = U.isDate(q.from) && U.isDate(q.to) && (q.range || !q.period) ? 'custom' : q.period || '';
   switch (key) {
     case 'day': from = to = U.isDate(q.from) ? q.from : t; break;
     case 'quarter': {
@@ -27,7 +31,8 @@ export function period(q: Record<string, string | undefined>) {
   return { from, to, key };
 }
 
-export const activeStaff = () => db.all('SELECT * FROM users WHERE active=1 ORDER BY name');
+/** People counted in attendance: active employees (Attendance Monitoring → Employees); never the owner or admins. */
+export const activeStaff = activeEmployees;
 
 export async function counts() {
   return (await db.get(`SELECT
@@ -59,7 +64,8 @@ export async function ownerDashboard(from: string, to: string) {
   const f = await B.finance(from, to);
   const newInq = (await db.val('SELECT COUNT(*) FROM requests WHERE SUBSTR(created_at,1,10) BETWEEN ? AND ?', [from, to])) ?? 0;
   const staff = await activeStaff();
-  const todayRecs = await db.all('SELECT * FROM attendance WHERE day=?', [today]);
+  const ids = new Set(staff.map((u) => u.id));
+  const todayRecs = (await db.all('SELECT * FROM attendance WHERE day=?', [today])).filter((r) => ids.has(r.user_id));
   const todayRows = await Promise.all(staff.map(async (u) => (await B.daily(u, today, today))[0]));
   const emp = {
     active: staff.length, timedIn: todayRecs.length, clockedIn: todayRecs.filter((r) => r.time_in && !r.time_out).length,

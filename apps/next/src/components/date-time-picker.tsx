@@ -86,6 +86,47 @@ export function DatePicker({ name, defaultValue = '', min, max, today, required,
   );
 }
 
+/**
+ * Form field for a date range, using the same "Custom date range" panel as the module header's date menu (From / To /
+ * Apply) in a fixed popover. Submits `fromName` and `toName` as 'YYYY-MM-DD'; shows the form's server errors for either.
+ */
+export function DateRangeField({ fromName, toName, label, defaultFrom = '', defaultTo = '', max, onChange }: {
+  fromName: string; toName: string; label: string; defaultFrom?: string; defaultTo?: string; max?: string; onChange?: (from: string, to: string) => void;
+}) {
+  const [val, setVal] = useState({ from: defaultFrom, to: defaultTo });
+  const [draft, setDraft] = useState(val);
+  const [err, setErr] = useState('');
+  const p = usePopover(230);
+  const errors = useFormState().errors, e = errors[fromName] || errors[toName];
+  const apply = () => {
+    if (!draft.from || !draft.to) return setErr('Choose both dates.');
+    if (draft.from > draft.to) return setErr('From must be on or before To.');
+    setErr(''); setVal(draft); onChange?.(draft.from, draft.to); p.close();
+  };
+  const text = val.from && val.to ? (val.from === val.to ? longDate(val.from) : `${longDate(val.from)} – ${longDate(val.to)}`) : 'Choose dates';
+  return (
+    <div className={`field ${e ? 'has-err' : ''}`}><label>{label}</label>
+      <span className="dp">
+        <input type="hidden" name={fromName} value={val.from} /><input type="hidden" name={toName} value={val.to} />
+        <button ref={p.btn} type="button" className={`dd-btn dp-btn ${val.from ? '' : 'empty'} ${e ? 'bad' : ''}`} aria-label={`${label}: ${text}`}
+          aria-haspopup="dialog" aria-expanded={!!p.pos} onClick={() => { if (!p.pos) { setDraft(val); setErr(''); } p.toggle(); }}>
+          <Icon d={CAL} /><span>{text}</span>
+        </button>
+        {p.pos && (
+          <div ref={p.pop} className="af-custom rng-pop" role="dialog" aria-label="Custom date range" style={p.pos}>
+            <div className="af-custom-title">Custom date range</div>
+            <label>From<span className="af-cal"><Icon d={CAL} /><input type="date" value={draft.from} max={draft.to || max} onChange={(x) => { setErr(''); setDraft({ ...draft, from: x.target.value }); }} /></span></label>
+            <label>To<span className="af-cal"><Icon d={CAL} /><input type="date" value={draft.to} min={draft.from || undefined} max={max} onChange={(x) => { setErr(''); setDraft({ ...draft, to: x.target.value }); }} /></span></label>
+            {err && <p className="af-err" role="alert">{err}</p>}
+            <button type="button" className="btn af-apply" onClick={apply}>Apply</button>
+          </div>
+        )}
+      </span>
+      {e && <div className="err" role="alert">{e}</div>}
+    </div>
+  );
+}
+
 const to12 = (t: string) => { const h = +t.slice(0, 2); return { h: h % 12 || 12, m: +t.slice(3, 5), ap: h < 12 ? 'AM' : 'PM' }; };
 const to24 = (h: number, m: number, ap: string) => `${pad((h % 12) + (ap === 'PM' ? 12 : 0))}:${pad(m)}`;
 const shortTime = (t: string) => { const x = to12(t); return `${x.h}:${pad(x.m)} ${x.ap}`; };

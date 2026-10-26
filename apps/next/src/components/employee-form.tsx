@@ -1,38 +1,44 @@
 'use client';
 import Link from 'next/link';
 import { ApiForm, Field, Submit } from './form';
-import { WEEKDAYS } from '@/lib/types';
 
-interface E { id?: number; name?: string; email?: string; username?: string; role: string; designation?: string; active: number; can_expenses?: number; sched_start: string; sched_end: string; grace_min: number; break_min: number; workdays: string }
+export interface EmployeeFormValues {
+  id?: number; first_name?: string; last_name?: string; email?: string; username?: string; role: string; designation?: string; active: number; can_expenses?: number;
+}
 
-export function EmployeeForm({ e, isNew }: { e: E; isNew: boolean }) {
-  const days = String(e.workdays || '').split(',');
+export const NEW_USER: EmployeeFormValues = { role: 'employee', active: 1 };
+
+/**
+ * Add / edit user form: account details only. New users are Admin or Staff (there is a single owner, whose role cannot
+ * change and who stays active). Work schedules and attendance rules are not edited here (new users get the database
+ * defaults). Full page, or (with `onClose`) the body of the User Management dialog: no card, Cancel closes, a successful
+ * save closes and refreshes the list.
+ */
+export function EmployeeForm({ e, isNew, onClose }: { e: EmployeeFormValues; isNew: boolean; onClose?: () => void }) {
+  const owner = e.role === 'owner';
   return (
-    <ApiForm action={isNew ? '/api/employees' : `/api/employees/${e.id}`} redirect="/app/employees" className="card" style={{ maxWidth: 760 }}>
-      <h3>Account</h3>
+    <ApiForm action={isNew ? '/api/employees' : `/api/employees/${e.id}`} redirect="/app/employees" stay={!!onClose} className={onClose ? undefined : 'card'} style={onClose ? undefined : { maxWidth: 760 }}
+      reset={isNew && !!onClose} onDone={(d) => { if (d.ok) onClose?.(); }}>
       <div className="grid g2">
-        <Field name="name" label="Full name *" defaultValue={e.name} attrs={{ required: true, maxLength: 120, autoComplete: 'off' }} />
-        <Field name="email" label="Email" type="email" defaultValue={e.email} attrs={{ autoComplete: 'off' }} />
+        <Field name="first_name" label="First name *" defaultValue={e.first_name} attrs={{ required: true, maxLength: 60, autoComplete: 'off' }} />
+        <Field name="last_name" label="Last name *" defaultValue={e.last_name} attrs={{ required: true, maxLength: 60, autoComplete: 'off' }} />
+        {owner
+          ? <div className="field"><label>Role</label><input value="Owner" disabled readOnly /><div className="small muted">There is only one owner; this role cannot be changed.</div></div>
+          : <Field name="role" label="Role *" type="select" emptyLabel={null} defaultValue={e.role} options={[['employee', 'Staff'], ['admin', 'Admin']]}
+              hint="Admins have the same access as the owner." />}
+        <Field name="designation" label="Designation" defaultValue={e.designation} hint="Job title, e.g. Ticketing Officer." attrs={{ maxLength: 80 }} />
         <Field name="username" label="Username *" defaultValue={e.username} attrs={{ required: true, maxLength: 40, autoComplete: 'off' }} />
+        <Field name="email" label="Email" type="email" defaultValue={e.email} attrs={{ autoComplete: 'off' }} />
         <Field name="password" label={isNew ? 'Initial password *' : 'Reset password (leave blank to keep)'} type="password" attrs={{ autoComplete: 'new-password', minLength: 10, required: isNew }}
-          hint="Min 10 characters with letters and numbers. The employee must change it at first login." />
-        <Field name="designation" label="Designation" defaultValue={e.designation} hint="Job title shown in Staff Attendance, e.g. Ticketing Officer." attrs={{ maxLength: 80 }} />
-        <Field name="role" label="Role" type="select" emptyLabel={null} defaultValue={e.role} options={[['employee', 'Employee'], ['owner', 'Owner / Administrator']]} />
-        <div className="field"><label>Permissions</label>
+          hint="Min 10 characters with letters and numbers. The user must change it at first login." />
+        {/* The owner already sees every module, so there is nothing to grant (and the account always stays active). */}
+        {!owner && <div className="field"><label>Permissions</label>
           <label style={{ fontWeight: 400 }}><input type="checkbox" name="can_expenses" defaultChecked={!!e.can_expenses} /> Can record/view business expenses</label>
-          <label style={{ fontWeight: 400 }}><input type="checkbox" name="active" defaultChecked={!!e.active} /> Account active</label></div>
+          <label style={{ fontWeight: 400 }}><input type="checkbox" name="active" defaultChecked={!!e.active} /> Account active</label></div>}
       </div>
-      <h3>Work schedule &amp; attendance rules</h3>
-      <div className="grid g4">
-        <Field name="sched_start" label="Shift start" type="time" defaultValue={e.sched_start} />
-        <Field name="sched_end" label="Shift end" type="time" defaultValue={e.sched_end} />
-        <Field name="grace_min" label="Grace period (min)" type="number" defaultValue={e.grace_min} attrs={{ min: 0, max: 120 }} />
-        <Field name="break_min" label="Unpaid break (min)" type="number" defaultValue={e.break_min} attrs={{ min: 0, max: 240 }} />
-      </div>
-      <div className="field"><label>Workdays</label><div className="row">
-        {WEEKDAYS.map((d, i) => <label key={d} style={{ fontWeight: 400 }}><input type="checkbox" name="workdays" value={i} defaultChecked={days.includes(String(i))} /> {d}</label>)}</div></div>
-      <p className="small muted">Late = time-in after shift start + grace period. Absent = scheduled workday ended with no attendance, leave or holiday. Changes apply to future calculations of the displayed reports.</p>
-      <div className="row"><Submit>Save</Submit> <Link className="btn ghost" href="/app/employees">Cancel</Link></div>
+      <div className="row"><Submit>{isNew ? 'Add user' : 'Save'}</Submit> {onClose
+        ? <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
+        : <Link className="btn ghost" href="/app/employees">Cancel</Link>}</div>
     </ApiForm>
   );
 }

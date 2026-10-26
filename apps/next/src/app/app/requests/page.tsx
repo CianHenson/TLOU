@@ -3,8 +3,11 @@ import { requireUser } from '@/lib/auth';
 import { STATUSES, SERVICE_TYPES } from '@/lib/biz';
 import { flat, paginate, sortClause, where } from '@/lib/list';
 import { str, intOrNull, isDate } from '@/lib/util';
-import { Page, Pager, SortTh } from '@/components/ui';
+import { FootLine, Page, Pager, SortTh } from '@/components/ui';
 import { staffList, reqBadge } from '@/lib/queries/core';
+import { OPEN_STATUSES } from '@/lib/types';
+import { rowMenu } from '@/lib/menu';
+import { RowMenus } from '@/components/context-menu';
 
 export const metadata = { title: 'Travel Requests' };
 
@@ -36,19 +39,23 @@ export default async function Requests(props: PageProps<'/app/requests'>) {
         <div><label>To</label><input type="date" name="to" defaultValue={q.to || ''} /></div>
         <div className="btnrow"><button className="btn">Filter</button><Link className="btn ghost" href="/app/requests">Reset</Link><Link className="btn alt" href="/app/requests/new">+ Register request</Link></div>
       </form>
-      <div className="tw"><table>
+      <div className="tw-card"><RowMenus className="tw tw-fixed tw-fm" empty={[{ label: 'Register request', href: '/app/requests/new' }]}><table>
         <thead><tr><SortTh list={list} label="Reference" k="ref" /><SortTh list={list} label="Customer" k="customer" /><th>Service</th><SortTh list={list} label="Status" k="status" /><th>Source</th><th>Assigned</th><SortTh list={list} label="Received" k="date" /></tr></thead>
         <tbody>
           {list.rows.map((r) => (
-            <tr key={r.id}>
+            <tr key={r.id} {...rowMenu([{ label: 'Open request', href: `/app/requests/${r.id}` }, { label: 'Open customer', href: `/app/customers/${r.customer_id}` },
+              OPEN_STATUSES.includes(r.status) && { label: 'Create booking', href: `/app/bookings/new?request=${r.id}` }])}>
               <td><Link href={`/app/requests/${r.id}`}>{r.ref}</Link></td><td><Link href={`/app/customers/${r.customer_id}`}>{r.customer}</Link></td><td>{r.service_type}</td>
               <td><span className={`badge ${reqBadge(r.status)}`}>{r.status}</span></td>
               <td>{r.source}</td><td>{r.employee || '—'}</td><td className="nowrap">{r.created_at.slice(0, 16)}</td>
             </tr>
           ))}
           {!list.rows.length && <tr><td colSpan={7} className="empty">No requests found.</td></tr>}
-        </tbody></table></div>
-      <Pager list={list} />
+          {!!list.rows.length && <tr className="fill"><td colSpan={7} /></tr>}
+        </tbody>
+        {!!list.rows.length && <FootLine cols={7} total={list.total} />}
+        </table></RowMenus>
+        {list.pages > 1 && <div className="tw-foot"><Pager list={list} /></div>}</div>
     </Page>
   );
 }

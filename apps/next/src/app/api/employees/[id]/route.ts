@@ -10,20 +10,24 @@ export const POST = api(async (req, ctx) => {
   const { id } = await ctx.params;
   const old = /^\d+$/.test(id) ? await db.get('SELECT * FROM users WHERE id=?', [id]) : undefined;
   if (!old) return fail('Employee not found.', 404);
-  const { b, fd } = await form(req);
-  const { e, errors, pw } = employeeInput(b, fd.getAll('workdays'), false);
+  // There is one owner: only they can see and edit their own account, and it always stays an active owner with full access.
+  if (old.role === 'owner' && old.id !== user.id) return fail('Employee not found.', 404);
+  const { b } = await form(req);
+  const { e, errors, pw } = employeeInput(b, false);
+  if (old.role === 'owner') { e.role = 'owner'; e.active = 1; e.can_expenses = 1; }
   if (!errors.username && await db.get('SELECT 1 FROM users WHERE LOWER(username)=? AND id!=?', [e.username, old.id])) errors.username = 'Already taken.';
-  if (old.id === user.id && (!e.active || e.role !== 'owner')) errors.name = 'You cannot deactivate or demote your own account.';
+  if (old.id === user.id && (!e.active || e.role !== old.role)) errors.first_name = 'You cannot deactivate or change the role of your own account.';
   if (Object.keys(errors).length) return invalid(errors);
   const hash = pw ? await hashPassword(pw) : null;
   await tx(async (d) => {
-    await d.run(`UPDATE users SET name=?,email=?,username=?,role=?,designation=?,active=?,can_expenses=?,sched_start=?,sched_end=?,grace_min=?,break_min=?,workdays=? WHERE id=?`,
-      [e.name, e.email, e.username, e.role, e.designation || null, e.active, e.can_expenses, e.sched_start, e.sched_end, e.grace_min, e.break_min, e.workdays, old.id]);
+    // Account details only; the work schedule columns are left as they are.
+    await d.run(`UPDATE users SET name=?,first_name=?,last_name=?,email=?,username=?,role=?,designation=?,active=?,can_expenses=? WHERE id=?`,
+      [e.name, e.first_name, e.last_name, e.email, e.username, e.role, e.designation || null, e.active, e.can_expenses, old.id]);
     if (hash) await d.run('UPDATE users SET password_hash=?, must_change_pw=1 WHERE id=?', [hash, old.id]);
   });
   await audit({ user, ip: clientIp(req) }, 'employee.update', 'user', old.id, {
-    before: { role: old.role, active: old.active, sched: [old.sched_start, old.sched_end, old.grace_min, old.break_min, old.workdays] },
-    after: { role: e.role, active: e.active, sched: [e.sched_start, e.sched_end, e.grace_min, e.break_min, e.workdays] }, passwordReset: !!pw,
+    before: { name: old.name, role: old.role, active: old.active, designation: old.designation },
+    after: { name: e.name, role: e.role, active: e.active, designation: e.designation || null }, passwordReset: !!pw,
   });
-  return ok('Employee saved.', { redirect: '/app/employees' });
+  return ok('User saved.', { redirect: '/app/employees' });
 });

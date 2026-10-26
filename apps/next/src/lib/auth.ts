@@ -8,10 +8,11 @@ import { db } from './db';
 import { COOKIE, MAX_AGE, REMEMBER_MAX_AGE, cookieOptions, readSession, signSession } from './session';
 
 export interface SessionUser {
-  id: number; username: string; name: string; role: 'owner' | 'employee'; emp_no: string;
+  id: number; username: string; name: string; role: 'owner' | 'admin' | 'employee'; emp_no: string;
   can_expenses: boolean; must_change_pw: boolean;
 }
-export const isOwner = (u: SessionUser) => u.role === 'owner';
+/** Owner-level access: the (single) owner and admins see and manage the same modules. */
+export const isOwner = (u: SessionUser) => u.role === 'owner' || u.role === 'admin';
 
 /** Set the session cookie (login) - for route handlers. */
 export async function startSession(uid: number, remember = false) {
@@ -39,7 +40,7 @@ type Need = 'user' | 'owner' | 'expenses';
 const allowed = (u: SessionUser, need: Need) => need === 'user' || (need === 'owner' ? isOwner(u) : isOwner(u) || u.can_expenses);
 
 /** The only /app pages the owner sees (each entry also covers its sub-pages). Everything else redirects to the dashboard. */
-const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/finance', '/app/finance-monitor', '/app/expenses', '/app/employees', '/app/profile', '/app/forbidden'];
+const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/finance', '/app/finance-monitor', '/app/expenses', '/app/employees', '/app/payslip', '/app/profile', '/app/forbidden'];
 const ownerHidden = (path: string) => path !== '/app' && !OWNER_MODULES.some((m) => path === m || path.startsWith(m + '/'));
 
 /** For pages / layouts: returns the user or redirects. Forbidden roles get /app/forbidden. */

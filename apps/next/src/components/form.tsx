@@ -8,12 +8,14 @@ import { useFlash } from './flash';
 interface FormState { pending: boolean; errors: Record<string, string> }
 const FormCtx = createContext<FormState>({ pending: false, errors: {} });
 
-export function ApiForm({ action, children, className, style, reset, redirect, confirm, onDone }: {
+export function ApiForm({ action, children, className, style, reset, redirect, stay, confirm, onDone }: {
   action: string; children: ReactNode; className?: string; style?: CSSProperties;
   /** Clear the inputs after success. */
   reset?: boolean;
   /** Where to go after success (the server may override with { redirect }). Default: stay and refresh. */
   redirect?: string;
+  /** Ignore any redirect and just refresh the current page (forms inside a dialog). */
+  stay?: boolean;
   /** window.confirm() text before submitting. */
   confirm?: string;
   onDone?: (data: { ok: boolean; [k: string]: unknown }) => void;
@@ -40,7 +42,7 @@ export function ApiForm({ action, children, className, style, reset, redirect, c
     }
     setState({ pending: false, errors: data.errors || {} });
     if (data.ok) {
-      const to = data.redirect ?? redirect;
+      const to = stay ? undefined : data.redirect ?? redirect;
       if (data.msg) show('ok', data.msg, !!to);
       if (reset) form.reset();
       onDone?.(data);

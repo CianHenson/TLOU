@@ -52,9 +52,23 @@ export function SortTh({ list, label, k, cls = '' }: { list: Pick<Page, 'qs'>; l
   return <th className={cls}><Link href={`?${p.toString()}`}>{label}{cur ? (dir === 'asc' ? ' ▲' : ' ▼') : ''}</Link></th>;
 }
 
+/**
+ * One-line table footer used by every list table: the record count on the left ("All records: N", or "Selected records:
+ * x/N" in the gold selection style while rows are selected) and, only where the table has one, a total on the right edge.
+ */
+export function FootLine({ cols, total, selected = 0, right }: { cols: number; total: number; selected?: number; right?: ReactNode }) {
+  return (
+    <tfoot><tr className={selected ? 'sel-total' : undefined}><td colSpan={cols}><div className="foot-line">
+      <span>{selected ? `Selected records: ${selected}/${total}` : `All records: ${total}`}</span>
+      {right != null && right !== false && <span>{right}</span>}
+    </div></td></tr></tfoot>
+  );
+}
+
+/** Page links; nothing on a single page (the table's FootLine already shows the record count). */
 export function Pager({ list }: { list: Pick<Page, 'page' | 'pages' | 'total' | 'qs'> }) {
   const href = (n: number) => `?${list.qs ? list.qs + '&' : ''}page=${n}`;
-  if (list.pages <= 1) return <p className="muted small right">{list.total} record{list.total === 1 ? '' : 's'}</p>;
+  if (list.pages <= 1) return null;
   return (
     <nav className="pager noprint" aria-label="Pagination">
       {list.page > 1 && <Link className="btn ghost sm" href={href(list.page - 1)}>← Prev</Link>}
