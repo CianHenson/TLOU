@@ -8,7 +8,7 @@ export function PrintButton({ children = 'Print', className = 'btn ghost sm' }: 
 }
 
 /** Philippine-time clock, offset from the server time so a wrong PC clock cannot mislead (display only). */
-export function Clock({ now }: { now: string }) {
+export function Clock({ now, split = false }: { now: string; split?: boolean }) {
   const [text, setText] = useState(now);
   useEffect(() => {
     const off = Date.parse(now.replace(' ', 'T') + '+08:00') - Date.now();
@@ -18,7 +18,10 @@ export function Clock({ now }: { now: string }) {
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, [now]);
-  return <div className="clock" suppressHydrationWarning>{text}</div>;
+  if (!split) return <div className="clock" suppressHydrationWarning>{text}</div>;
+  // "Monday, October 26, 2026 at 2:43:31 PM" -> big time + small date
+  const [d, t] = text.split(/ at /);
+  return <div suppressHydrationWarning><div className="clock-time">{t ?? text}</div>{t && <div className="clock-date">{d}</div>}</div>;
 }
 
 /** <select> inside a GET filter form that submits the form when changed. */

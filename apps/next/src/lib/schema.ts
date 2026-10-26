@@ -78,9 +78,13 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120), email VARCHAR(160), phone VARCHAR(40), body TEXT, at VARCHAR(19) NOT NULL,
     handled TINYINT NOT NULL DEFAULT 0)`,
+  // Dashboard announcements: every post / edit / removal is a row (empty body = removed); the newest row is the current one.
+  `CREATE TABLE IF NOT EXISTS announcements (
+    id INT AUTO_INCREMENT PRIMARY KEY, body TEXT NOT NULL, user_id INT NULL, user_name VARCHAR(120), at VARCHAR(19) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL)`,
 ];
 
-const DEFAULT_SETTINGS: Record<string, string> = {
+const DEFAULT_SETTINGS:Record<string, string> = {
   business_name: 'Alchemist Trip & Ride Travel Service',
   tagline: 'Your Travel Partner, One Click Away!',
   location: 'Puerto Princesa City, Palawan',
@@ -124,6 +128,16 @@ export async function ensureSchema(d: Db) {
   const hasCol = async (t: string, c: string) =>
     !!(await d.val('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?', [t, c]));
   if (!(await hasCol('users', 'designation'))) await d.run('ALTER TABLE users ADD COLUMN designation VARCHAR(80) NULL AFTER role');
+  // First run after the history table was added: move the single stored announcement into it.
+  if (!(await d.val("SELECT COUNT(*) FROM announcements"))) {
+    const old = await d.val("SELECT v FROM settings WHERE k='_announcement'");
+    if (old) {
+      await d.run("INSERT INTO announcements (body,user_name,at) VALUES (?,?,?)", [old,
+        (await d.val("SELECT v FROM settings WHERE k='_announcement_by'")) || null,
+        (await d.val("SELECT v FROM settings WHERE k='_announcement_at'")) || now()]);
+    }
+    await d.run("DELETE FROM settings WHERE k LIKE '\\\\_announcement%'");
+  }
   const have = new Set((await d.all<{ k: string }>('SELECT k FROM settings')).map((r) => r.k));
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) if (!have.has(k)) await d.run('INSERT INTO settings (k,v) VALUES (?,?)', [k, v]);
   if (!(await d.val('SELECT COUNT(*) FROM services'))) {
