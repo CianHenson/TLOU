@@ -123,6 +123,7 @@ export async function ensureSchema(d: Db) {
   // Columns added after the first release (CREATE TABLE IF NOT EXISTS leaves existing tables untouched).
   const hasCol = async (t: string, c: string) =>
     !!(await d.val('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?', [t, c]));
+  if (!(await hasCol('expenses', 'updated_by'))) await d.run('ALTER TABLE expenses ADD COLUMN updated_by INT NULL, ADD COLUMN updated_at VARCHAR(19) NULL');
   if (!(await hasCol('users', 'designation'))) await d.run('ALTER TABLE users ADD COLUMN designation VARCHAR(80) NULL AFTER role');
   const have = new Set((await d.all<{ k: string }>('SELECT k FROM settings')).map((r) => r.k));
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) if (!have.has(k)) await d.run('INSERT INTO settings (k,v) VALUES (?,?)', [k, v]);

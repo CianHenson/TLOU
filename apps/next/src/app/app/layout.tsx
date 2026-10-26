@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const owner = isOwner(me);
   const nav: NavItem[] = owner ? [
     { label: 'Dashboard', href: '/app' },
-    { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'Sales', href: '/app/finance' }, { label: 'Expenses', href: '/app/expenses' }, { label: 'Monitoring Finances', href: '/app/finance-monitor' },
+    { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'Sales', href: '/app/finance' }, { label: 'Monitoring Finances', href: '/app/finance-monitor' },
     { group: 'People' }, { label: 'Attendance Monitoring', href: '/app/attendance-monitor' }, { label: 'User Management', href: '/app/employees' },
   ] : [
     { label: 'Dashboard', href: '/app' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'My Attendance', href: '/app/attendance' }, { label: 'Customer Management', href: '/app/customers' }, { label: 'Travel Requests', href: '/app/requests' }, { label: 'Bookings', href: '/app/bookings' },
