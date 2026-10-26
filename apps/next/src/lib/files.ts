@@ -35,14 +35,17 @@ export async function saveUpload(file: FormDataEntryValue | undefined | null): P
   return { stored, original: path.basename(file.name).slice(0, 200) };
 }
 
-/** Download response for a stored upload (404 if missing). */
-export async function sendStored(stored: string, original: string) {
+const INLINE_TYPES: Record<string, string> = { '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png' };
+
+/** Download response for a stored upload (404 if missing). `inline` shows PDFs / images in the browser instead of downloading. */
+export async function sendStored(stored: string, original: string, inline = false) {
   try {
     const buf = await fs.readFile(path.join(UPLOAD_DIR, path.basename(stored)));
+    const type = inline ? INLINE_TYPES[path.extname(stored).toLowerCase()] : undefined;
     return new Response(new Uint8Array(buf), {
       headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(original)}`,
+        'Content-Type': type ?? 'application/octet-stream',
+        'Content-Disposition': `${type ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(original)}`,
         'X-Content-Type-Options': 'nosniff',
       },
     });

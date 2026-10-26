@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Dropdown, type DropdownOption } from './dropdown';
+import { MultiDropdown } from './multi-dropdown';
 
 const PRESETS: [string, string][] = [['', 'All dates'], ['today', 'Today'], ['yesterday', 'Yesterday'], ['week', 'This week'], ['month', 'This month'], ['year', 'This year']];
 
@@ -40,14 +41,17 @@ function useApply() {
   };
 }
 
-export interface ToolbarDropdown { key: string; label: string; value: string; options: DropdownOption[] }
+/** `multiple`: tick several options (value = comma-joined, '' = all); `options[0]`'s label is then the "all" text and the rest are the choices. */
+export interface ToolbarDropdown { key: string; label: string; value: string; options: DropdownOption[]; multiple?: boolean; noun?: string }
 
 /**
  * Toolbar above the table columns: search box (query key `q`) and themed dropdowns on the left, Export on the right.
  * A dropdown's '' option clears its key.
  */
-export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitle }: {
+export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitle, exportNote }: {
   q: string; placeholder: string; dropdowns: ToolbarDropdown[]; exportHref: string; exportTitle: string;
+  /** When set, Export first asks the user to confirm this message (used to warn that active filters limit the file). */
+  exportNote?: string;
 }) {
   const apply = useApply();
   const [text, setText] = useState(q);
@@ -65,8 +69,11 @@ export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitl
         <Icon d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14zM21 21l-4.35-4.35" />
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label="Search" />
       </div>
-      {dropdowns.map((d) => <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />)}
-      <a className="btn ghost tt-export" href={exportHref} title={exportTitle}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>
+      {dropdowns.map((d) => d.multiple
+        ? <MultiDropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} noun={d.noun ?? 'items'}
+            allLabel={String(Array.isArray(d.options[0]) ? d.options[0][1] : d.options[0])} options={d.options.slice(1).map((o) => (Array.isArray(o) ? o[0] : o))} />
+        : <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />)}
+      <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => { if (exportNote && !window.confirm(exportNote)) e.preventDefault(); }}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>
     </form>
   );
 }

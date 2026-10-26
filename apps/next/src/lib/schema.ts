@@ -127,6 +127,7 @@ export async function ensureSchema(d: Db) {
   // Columns added after the first release (CREATE TABLE IF NOT EXISTS leaves existing tables untouched).
   const hasCol = async (t: string, c: string) =>
     !!(await d.val('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?', [t, c]));
+  if (!(await hasCol('expenses', 'updated_by'))) await d.run('ALTER TABLE expenses ADD COLUMN updated_by INT NULL, ADD COLUMN updated_at VARCHAR(19) NULL');
   if (!(await hasCol('users', 'designation'))) await d.run('ALTER TABLE users ADD COLUMN designation VARCHAR(80) NULL AFTER role');
   // First run after the history table was added: move the single stored announcement into it.
   if (!(await d.val("SELECT COUNT(*) FROM announcements"))) {
