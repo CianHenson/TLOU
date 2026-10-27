@@ -77,6 +77,7 @@ export default async function Dashboard(props: PageProps<'/app'>) {
     }>
       <div className="dash"><div className="dash-main">
       {hello}
+      {clock}
 
       <div className="kpis">
         <Link className="kpi" href={`/app/finance?${rng}`}><div className="l">Booking sales</div><div className="n">{U.peso(f.booking_sales)}</div><div className="s">{U.peso(f.collected)} collected</div></Link>
@@ -84,8 +85,6 @@ export default async function Dashboard(props: PageProps<'/app'>) {
         <Link className={`kpi ${air.income >= 0 ? 'pos' : 'neg'}`} href={`/app/finance-monitor?${rng}`}><div className="l">Agency income</div><div className="n">{U.peso(air.income)}</div><div className="s">Service charge − card fees</div></Link>
         <Link className={`kpi ${f.net >= 0 ? 'pos' : 'neg'}`} href={`/app/finance?${rng}`}><div className="l">Net operating result</div><div className="n">{U.peso(f.net)}</div><div className="s">{U.peso(f.expenses)} expenses</div></Link>
       </div>
-
-      {clock}
 
       <div className="attn" aria-label="Needs attention">
         {open.length

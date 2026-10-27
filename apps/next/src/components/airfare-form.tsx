@@ -53,8 +53,8 @@ export function AirfareForm({ a, today, onDone, onCancel }: { a: AirfareValues; 
         <Field name="origin" label="Origin *" defaultValue={a.origin} attrs={{ required: true, maxLength: 80, onInput: titleCase, autoCapitalize: 'words' }} />
         <Field name="destination" label="Destination *" defaultValue={a.destination} attrs={{ required: true, maxLength: 80, onInput: titleCase, autoCapitalize: 'words' }} />
         <DateField name="travel_date" label="Travel date *" defaultValue={a.travel_date} today={today} required />
-        <TimeField name="travel_time" label="Time" defaultValue={a.travel_time} />
         <div className="field"><label>Status for check-in</label><Dropdown name="checkin_status" ariaLabel="Status for check-in" options={CHECKIN_STATUSES} defaultValue={a.checkin_status} style={{ width: '100%' }} /></div>
+        <div className="span2"><TimeField name="travel_time" label="Travel time" defaultValue={a.travel_time} /></div>
       </div>
 
       <h3>Amounts</h3>
