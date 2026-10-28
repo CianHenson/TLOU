@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ApiForm, Submit } from './form';
+import { PROFILE_EVT } from './profile-modal';
 
 export type NavItem = { label: string; href: string } | { group: string };
 
@@ -76,9 +77,9 @@ function UserMenu({ userName, roleLabel }: { userName: string; roleLabel: string
       {pos && createPortal(
         <div ref={menu} className="user-menu" role="menu" style={{ left: pos.left, bottom: pos.bottom }}>
           <div className="um-head"><span className="avatar" aria-hidden="true">{initials(userName)}</span><span><b>{userName}</b><small>{roleLabel}</small></span></div>
-          <Link href="/app/profile" className="um-item" role="menuitem">
+          <button type="button" className="um-item" role="menuitem" onClick={() => { setPos(null); window.dispatchEvent(new Event(PROFILE_EVT)); }}>
             <Ico><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" /></Ico>Edit profile
-          </Link>
+          </button>
           <ApiForm action="/api/auth/logout" redirect="/login">
             <Submit className="um-item danger"><Ico><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></Ico>Log out</Submit>
           </ApiForm>

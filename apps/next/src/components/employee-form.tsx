@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ApiForm, Field, Submit } from './form';
 
 export interface EmployeeFormValues {
-  id?: number; first_name?: string; last_name?: string; email?: string; username?: string; role: string; designation?: string; active: number; can_expenses?: number;
+  id?: number; first_name?: string; last_name?: string; email?: string; role: string; designation?: string; active: number; can_expenses?: number;
 }
 
 export const NEW_USER: EmployeeFormValues = { role: 'employee', active: 1 };
@@ -27,10 +27,9 @@ export function EmployeeForm({ e, isNew, onClose }: { e: EmployeeFormValues; isN
           : <Field name="role" label="Role *" type="select" emptyLabel={null} defaultValue={e.role} options={[['employee', 'Staff'], ['admin', 'Admin']]}
               hint="Admins have the same access as the owner." />}
         <Field name="designation" label="Designation" defaultValue={e.designation} hint="Job title, e.g. Ticketing Officer." attrs={{ maxLength: 80 }} />
-        <Field name="username" label="Username *" defaultValue={e.username} attrs={{ required: true, maxLength: 40, autoComplete: 'off' }} />
-        <Field name="email" label="Email" type="email" defaultValue={e.email} attrs={{ autoComplete: 'off' }} />
-        <Field name="password" label={isNew ? 'Initial password *' : 'Reset password (leave blank to keep)'} type="password" attrs={{ autoComplete: 'new-password', minLength: 10, required: isNew }}
-          hint="Min 10 characters with letters and numbers. The user must change it at first login." />
+        <Field name="email" label="Email (used to log in) *" type="email" defaultValue={e.email} attrs={{ required: true, maxLength: 160, autoComplete: "off" }} />
+        <Field name="password" label={isNew ? 'Initial password *' : 'Reset password (leave blank to keep)'} type="password" attrs={{ autoComplete: 'new-password', minLength: 8, required: isNew }}
+          hint="Min 8 characters, first letter capital, with a number. The user must change it at first login." />
         {/* The owner already sees every module, so there is nothing to grant (and the account always stays active). */}
         {!owner && <div className="field"><label>Permissions</label>
           <label style={{ fontWeight: 400 }}><input type="checkbox" name="can_expenses" defaultChecked={!!e.can_expenses} /> Can record/view business expenses</label>

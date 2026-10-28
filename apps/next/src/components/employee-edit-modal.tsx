@@ -19,7 +19,7 @@ export function EmployeeEditModal({ user, onClose }: { user: Row; onClose: () =>
           <button type="button" className="modal-x" aria-label="Close" onClick={close}>×</button>
         </div>
         <div className="modal-body">
-          <EmployeeForm isNew={false} onClose={close} e={{ id: user.id, first_name: user.first_name ?? '', last_name: user.last_name ?? '', email: user.email ?? '', username: user.username,
+          <EmployeeForm isNew={false} onClose={close} e={{ id: user.id, first_name: user.first_name ?? '', last_name: user.last_name ?? '', email: user.email ?? '',
             role: user.role, designation: user.designation ?? '', active: user.active, can_expenses: user.can_expenses }} />
         </div>
       </dialog>

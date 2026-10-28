@@ -20,5 +20,6 @@ export async function verifyPassword(pw: string, stored: string | null | undefin
   return want.length === got.length && crypto.timingSafeEqual(want, got) && !!stored;
 }
 
-/** At least 10 characters with letters and numbers. */
-export const strongEnough = (pw: string) => pw.length >= 10 && /[a-z]/i.test(pw) && /\d/.test(pw);
+/** At least 8 characters, starting with a capital letter, and containing a number. */
+export const strongEnough = (pw: string) => pw.length >= 8 && /^[A-Z]/.test(pw) && /\d/.test(pw);
+export const PASSWORD_HINT = "At least 8 characters, starting with a capital letter, with at least one number.";

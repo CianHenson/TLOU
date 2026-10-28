@@ -18,7 +18,7 @@ export default async function Employees(props: PageProps<'/app/employees'>) {
   return (
     <Page title="User Management" actions={<NewUserButton />}>
       <div className="tw-card">
-        <TableFilters q={f.search} placeholder="Search name, username, employee no., designation" dropdowns={[
+        <TableFilters q={f.search} placeholder="Search name, email, employee no., designation" dropdowns={[
           { key: 'role', label: 'Role', value: f.roles.join(','), options: [['', 'All roles'], ...roleLabels(meIsOwner)], multiple: true, noun: 'roles' },
         ]} />
         <UserTable rows={users} me={me.id} meIsOwner={meIsOwner} />

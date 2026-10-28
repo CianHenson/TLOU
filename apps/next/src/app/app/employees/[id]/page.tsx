@@ -14,7 +14,7 @@ export default async function EditEmployee({ params }: PageProps<'/app/employees
   if (!e || (e.role === 'owner' && e.id !== me.id)) notFound();
   return (
     <Page title={e.name}>
-      <EmployeeForm isNew={false} e={{ id: e.id, first_name: e.first_name ?? '', last_name: e.last_name ?? '', email: e.email ?? '', username: e.username, role: e.role, designation: e.designation ?? '', active: e.active, can_expenses: e.can_expenses }} />
+      <EmployeeForm isNew={false} e={{ id: e.id, first_name: e.first_name ?? '', last_name: e.last_name ?? '', email: e.email ?? '', role: e.role, designation: e.designation ?? '', active: e.active, can_expenses: e.can_expenses }} />
     </Page>
   );
 }

@@ -5,6 +5,7 @@ import { peso } from '@/lib/util';
 import type { Service } from '@/lib/types';
 import { ContactForm } from './_components/contact-form';
 import { ContactCard, Values } from './_components/parts';
+import { Slideshow } from './_components/slideshow';
 
 export const metadata = { title: 'Home' };
 
@@ -17,6 +18,7 @@ export default async function Home() {
         <div>
           <span className="eyebrow">{S.location}</span>
           <h1>Book smart. <em>Travel with confidence.</em></h1>
+          <p style={{ fontSize: "1.5rem", fontWeight: 700, color: "#e8c35e", margin: "0 0 .5em" }}>Explore More, Worry Less</p>
           <p className="lead"><strong style={{ color: '#fff' }}>{S.tagline}</strong> Flights, hotels and travel needs arranged by real people — from booking hanggang biyahe.</p>
           <div className="row"><Link className="btn big" href="/request">Request Travel Assistance</Link> <Link className="btn ghost big" href="/#fares">See promo fares</Link></div>
           <div className="hero-trust"><span><b>Easy</b> booking help</span><span><b>Affordable</b> options</span><span><b>Reliable</b> assistance</span></div>
@@ -52,6 +54,17 @@ export default async function Home() {
           ))}
         </div>
       </div></section>
+      <section className="section alt" id="rentals"><div className="wrap">
+        <div className="section-head"><span className="eyebrow">Rent · Ride · Travel</span><h2>Car rentals &amp; van services</h2>
+          <p className="muted">Cars, SUVs, pickups and vans for your trip, plus motorcycle service and camping gear for rent.</p></div>
+        <Slideshow />
+        <div className="cards" style={{ marginTop: 24 }}>
+          <div className="svc"><h3>Vehicles</h3><p className="muted">Cars &amp; SUVs, pickup trucks, van service and motorcycle service.</p></div>
+          <div className="svc"><h3>Camping gear for rent</h3><p className="muted">Camping tent, chair, table and mat.</p></div>
+          <div className="svc"><h3>Travel assistance</h3><p className="muted">Domestic and international airfare, private seaplane, visa and immigration assistance, ferry booking, land transportation ticketing and travel insurance.</p></div>
+        </div>
+      </div></section>
+
 
       {S.fareList.length > 0 && (
         <section className="section alt" id="fares"><div className="wrap">

@@ -8,7 +8,7 @@ import { ATT_STATUSES } from '../types';
 import type { Row } from '../types';
 
 /** User columns needed for attendance calculations (never password_hash). */
-const UCOLS = 'u.id, u.emp_no, u.name, u.username, u.designation, u.active AS user_active, u.sched_start, u.sched_end, u.grace_min, u.break_min, u.workdays, u.created_at';
+const UCOLS = 'u.id, u.emp_no, u.name, u.email, u.designation, u.active AS user_active, u.sched_start, u.sched_end, u.grace_min, u.break_min, u.workdays, u.created_at';
 
 /** Every employee (active and deactivated) with their user details; `id` is the user id, `employee_id` the employees row. */
 export const allEmployees = () => db.all(`SELECT ${UCOLS}, e.id AS employee_id, e.hourly_rate, e.active FROM employees e JOIN users u ON u.id=e.user_id
@@ -19,7 +19,7 @@ export const activeEmployees = () => db.all(`SELECT ${UCOLS}, e.id AS employee_i
   WHERE e.active=1 AND u.active=1 ORDER BY u.name`);
 
 /** Registered Staff accounts that can still be added as employees (owner / admins never appear). */
-export const availableUsers = () => db.all(`SELECT id, name, username, designation FROM users
+export const availableUsers = () => db.all(`SELECT id, name, email, designation FROM users
   WHERE role='employee' AND active=1 AND id NOT IN (SELECT user_id FROM employees) ORDER BY name`);
 
 /** The active employee record for a user, if any. */
