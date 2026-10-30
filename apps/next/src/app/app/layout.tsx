@@ -26,6 +26,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { label: 'Dashboard', href: '/app' },
     { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'Sales', href: '/app/finance' }, { label: 'Monitoring Finances', href: '/app/finance-monitor' },
     { group: 'People' }, { label: 'Attendance & Payroll', href: '/app/attendance-monitor' }, { label: 'User Management', href: '/app/employees' },
+    { group: 'System' }, { label: 'Audit Logs', href: '/app/audit' },
   ] : [
     { label: 'Dashboard', href: '/app' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'My Attendance', href: '/app/attendance' }, { label: 'Customer Management', href: '/app/customers' }, { label: 'Travel Requests', href: '/app/requests' }, { label: 'Bookings', href: '/app/bookings' },
     { label: 'Transactions & Payments', href: '/app/payments' }, ...(me.can_expenses ? [{ label: 'Expenses', href: '/app/expenses' }] : []),

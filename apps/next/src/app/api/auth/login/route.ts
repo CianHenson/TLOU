@@ -17,7 +17,7 @@ export const POST = api(async (req) => {
   if (!good) {
     limited(key, 10, W); // only failed attempts count
     await audit({ ip }, 'login.fail', 'user', null, email.slice(0, 60));
-    return fail('Invalid email or password.', 400); // not 401: ApiForm treats 401 as "session expired"
+    return fail('Invalid email/username or password.', 400); // not 401: ApiForm treats 401 as "session expired"
   }
   clearLimit(key);
   await startSession(u!.id, !!b.remember);

@@ -64,6 +64,45 @@ section[id]{scroll-margin-top:68px}
 .svc{border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:8px;transition:transform .18s,box-shadow .18s,border-color .18s}.svc:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(40,30,10,.12);border-color:#dcc27a}
 .svc h3{margin:0}.svc p{margin:0 0 8px}.svc .ic{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;font-size:1.5rem;background:linear-gradient(135deg,#fbf0cf,#f1d98f);margin-bottom:6px}.svc .btn{margin-top:auto;align-self:flex-start}
 .why .svc{background:transparent;box-shadow:none;border:0;border-top:2px solid var(--brand);border-radius:0;padding:18px 4px 0}.why .svc:hover{transform:none;box-shadow:none}
+/* Service cards ((public)/_components/service-card.tsx): dark icon tile with a gold line icon, running number, gold
+   accent line that grows on hover. Three per row on desktop, two on tablets, one on phones. */
+.svc2-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.svc2{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:28px 28px 30px;border-radius:20px;background:#fff;border:1px solid var(--line);box-shadow:0 1px 2px rgba(40,30,10,.04);transition:transform .2s,box-shadow .2s,border-color .2s}
+.svc2::after{content:"";position:absolute;left:28px;right:28px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:linear-gradient(90deg,var(--brand),#e8c35e);transform:scaleX(.18);transform-origin:left;transition:transform .3s}
+.svc2:hover{transform:translateY(-4px);border-color:#e3cf95;box-shadow:0 22px 44px rgba(40,30,10,.10)}
+.svc2:hover::after{transform:scaleX(1)}
+.svc2-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+.svc2-ic{display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,var(--dark),#3a2c12);color:#e8c35e;font-size:1.5rem;box-shadow:0 8px 18px rgba(27,23,16,.18);transition:background .2s,color .2s}
+.svc2:hover .svc2-ic{background:linear-gradient(135deg,var(--brand),#e8c35e);color:var(--dark)}
+.svc2-n{font-size:2rem;font-weight:800;line-height:1;letter-spacing:-.02em;color:#efe7d2}
+.svc2 h3{margin:0 0 8px;font-size:1.15rem;font-weight:700}
+.svc2 p{margin:0;color:var(--mut);line-height:1.6}
+@media (max-width:900px){.svc2-grid{grid-template-columns:repeat(2,1fr);gap:16px}}
+@media (max-width:600px){.svc2-grid{grid-template-columns:1fr}.svc2{padding:22px 22px 24px}.svc2::after{left:22px;right:22px}.svc2-top{margin-bottom:16px}}
+/* Carriers strip ((public)/_components/carriers.tsx): grey logos lit up one by one; names as text until a logo is added. */
+.carriers{margin-top:44px;padding-top:30px;border-top:1px solid var(--line);text-align:center}
+.carriers-title{margin:0 0 18px;font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.carriers ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px 18px}
+.carriers li{display:grid;place-items:center;width:210px;height:76px;padding:12px 18px;border-radius:14px;background:#fff;border:1px solid var(--line);transition:border-color .2s,box-shadow .2s}
+.carriers li:hover{border-color:#e3cf95;box-shadow:0 10px 24px rgba(40,30,10,.08)}
+.carriers img{max-width:174px;max-height:40px;width:auto;height:auto;object-fit:contain;filter:grayscale(1);opacity:.7}
+/* Auto highlight: a 4 s loop, each logo's 1 s turn offset by --i (its position); hovering a logo shows it in colour. */
+.carriers li{animation:car-tile 4s infinite calc(var(--i,0) * 1s)}
+.carriers img{animation:car-hl 4s infinite calc(var(--i,0) * 1s)}
+.carriers li:hover{animation:none;border-color:#e3cf95;box-shadow:0 10px 24px rgba(40,30,10,.08)}
+.carriers li:hover img{animation:none;filter:none;opacity:1}
+@keyframes car-hl{0%{filter:grayscale(1);opacity:.7}4%,21%{filter:grayscale(0);opacity:1}25%,100%{filter:grayscale(1);opacity:.7}}
+@keyframes car-tile{0%{border-color:var(--line);box-shadow:none}4%,21%{border-color:#e3cf95;box-shadow:0 10px 24px rgba(40,30,10,.10)}25%,100%{border-color:var(--line);box-shadow:none}}
+.carriers li.bleed{padding:0;overflow:hidden;border:0}
+.carriers li.bleed img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}
+.carriers span{font-weight:700;font-size:1rem;color:var(--ink)}
+@media (max-width:600px){.carriers ul{display:grid;grid-template-columns:1fr 1fr;gap:10px}.carriers li{width:auto;height:64px;padding:10px 12px}.carriers img{max-width:100%;max-height:36px}.carriers span{font-size:.9rem;text-align:center}}
+/* Scroll reveal (components/scroll-reveal.tsx): fade + slide up once on entering the screen, staggered by --rv-d.
+   Uses `translate` and an animation (not transform / transition) so the cards' own hover lift keeps working.
+   Reduced motion: the global animation:none leaves .in at full opacity, i.e. content just appears. */
+.reveal{opacity:0}
+.reveal.in{opacity:1;animation:rv-up .7s cubic-bezier(.2,.7,.2,1) var(--rv-d,0ms) both}
+@keyframes rv-up{from{opacity:0;translate:0 28px}to{opacity:1;translate:0 0}}
 .cta-band{background:linear-gradient(135deg,#1b1710,#3a2c12);color:#fff;border-radius:22px;padding:38px;display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}.cta-band h2{margin:0 0 .3em;color:#fff}.cta-band p{margin:0;color:#dcd2b6}
 .fares td{padding:14px 16px;font-size:1rem}.fares .price{font-weight:800;font-size:1.08rem;background:linear-gradient(180deg,#fbf0cf,#f1d98f);padding:.25em .7em;border-radius:8px;display:inline-block}
 .fares thead th{background:var(--dark);color:#fff}.partners{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.chip{padding:.25em .8em;border-radius:99px;background:#fff;border:1px solid var(--line);font-weight:600;font-size:.85rem}
@@ -94,9 +133,9 @@ body.pub{display:flex;flex-direction:column}body.pub>main{flex:1 0 auto}
 @supports not (backdrop-filter:blur(1px)){.glass{background:rgba(60,45,18,.85)}.pubhead{background:#fff}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 @media print{body{background:#fff}.side,.mhead .filters,.mhead .mh-actions,.pubhead,.footer,.noprint,.menu,.filters,.pager{display:none!important}.shell{display:block}.main{padding:0}.card,.stat,.tw{box-shadow:none}.card{break-inside:avoid}}
-.slideshow{max-width:1100px;margin:32px auto 0;padding:0 32px}
-.ss-frame{position:relative;aspect-ratio:12/5;border-radius:16px;overflow:hidden;background:#17130b}
-.ss-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s}
+.slideshow{max-width:640px;margin:28px auto 0;padding:0 16px}
+.ss-frame{position:relative;aspect-ratio:3/2;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ss-frame img{position:absolute;inset:0;width:100%;height:100%;padding:12px;object-fit:contain;opacity:0;transition:opacity .6s}
 .ss-frame img.on{opacity:1}
 .ss-bars{display:flex;justify-content:center;gap:8px;margin-top:12px}
 .ss-seg{width:44px;height:14px;padding:5px 0;border:0;background:none;cursor:pointer;display:block}
@@ -105,7 +144,61 @@ body.pub{display:flex;flex-direction:column}body.pub>main{flex:1 0 auto}
 .ss-seg.cur span{background:rgba(150,120,50,.3)}
 .ss-seg.cur span::after{content:"";position:absolute;inset:0;width:0;background:#c8962a;animation:ss-fill linear forwards;animation-duration:inherit}
 @keyframes ss-fill{to{width:100%}}
-.ss-cap{position:absolute;left:0;right:0;bottom:0;padding:28px 20px 14px;color:#fff;display:flex;flex-direction:column;background:linear-gradient(transparent,rgba(0,0,0,.65))}
-.ss-cap b{font-size:1.25rem}.ss-cap span{font-size:.9rem;color:#e8c35e}
+.ss-cap{display:flex;flex-direction:column;align-items:center;margin-top:12px;text-align:center}
+.ss-cap b{font-size:1.15rem}.ss-cap span{font-size:.9rem;color:#a8791c}
 .ss-credit{text-align:center;margin:8px 0 0}
-.ss-frame img.own{object-fit:contain}
+/* Public-site dialog (components/public-nav.tsx: Staff login warning), same look as the in-app modal. */
+.pub-modal{width:min(440px,calc(100vw - 32px));margin:auto;padding:0;overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);box-shadow:0 30px 70px rgba(20,14,5,.35)}
+.pub-modal::backdrop{background:rgba(20,15,6,.45);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.pub-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 14px 22px;background:linear-gradient(135deg,var(--dark),var(--dark2));color:#fff}
+.pub-modal-head h3{margin:0;color:#fff;font-size:1.1rem}
+.pub-modal-x{display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:9px;background:none;color:#fff;font-size:1.5rem;line-height:1;cursor:pointer}
+.pub-modal-x:hover{background:rgba(255,255,255,.1)}
+.pub-modal-body{padding:18px 22px 22px}
+.pub-modal-body p{margin:0 0 18px;line-height:1.55}
+.pub-modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+/* Public header burger (components/public-nav.tsx): links fold into a drop-down panel under the sticky header. */
+.nav-burger{display:none;place-items:center;width:42px;height:42px;padding:0;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);cursor:pointer}
+.nav-burger:hover{background:#f3eedd}.nav-burger:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+@media (max-width:900px){
+  .pubhead .wrap{padding:0 16px;min-height:60px;flex-wrap:nowrap}
+  .pubhead .logo{min-width:0;font-size:1rem;line-height:1.2}
+  .nav-burger{display:grid;flex:none}
+  .nav{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:2px;padding:8px 16px 14px;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 14px 30px rgba(20,14,5,.12)}
+  .nav.open{display:flex}
+  .nav a{padding:.75em .9em;font-size:1rem}
+  .nav a.small{margin-top:6px;padding-top:.9em;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+  .hero .wrap{padding:0 16px}
+  .fwrap{padding:0 16px}
+}
+@media (max-width:600px){
+  .wrap{padding:0 16px}
+  .slideshow{padding:0}
+  .glass{padding:20px}
+  .section-head h2{font-size:1.5rem}
+  .cta-band{border-radius:16px}
+}
+/* Customer photos ((public)/_components/customer-gallery.tsx): any shape shown whole over a blurred copy of itself. */
+.cg{max-width:620px;margin:0 auto}
+.cg-frame{position:relative;aspect-ratio:1/1;border-radius:18px;overflow:hidden;background:#17130b;user-select:none;-webkit-user-select:none;touch-action:pan-y;box-shadow:0 18px 40px rgba(20,14,5,.18)}
+.cg-frame:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.cg-backdrop{position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(24px) brightness(.6);transition:background-image .3s}
+.cg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;animation:cg-in .35s ease}
+@keyframes cg-in{from{opacity:0}to{opacity:1}}
+.cg-half{position:absolute;top:0;bottom:0;width:50%;display:none;align-items:center;padding:0 18px;opacity:0;transition:opacity .15s;cursor:pointer}
+.cg-half.left{left:0;justify-content:flex-start;background:linear-gradient(90deg,rgba(0,0,0,.35),transparent 60%)}
+.cg-half.right{right:0;justify-content:flex-end;background:linear-gradient(270deg,rgba(0,0,0,.35),transparent 60%)}
+.cg-half span{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff}
+.cg-half:hover{opacity:1}
+.cg-count{position:absolute;right:12px;bottom:12px;padding:.25em .7em;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:.82rem;font-weight:700;pointer-events:none}
+.cg-hint{text-align:center;margin:10px 0 0}
+.cg-hint-touch{display:none}
+@media (hover:hover) and (pointer:fine){.cg-half{display:flex}}
+@media not ((hover:hover) and (pointer:fine)){.cg-hint-mouse{display:none}.cg-hint-touch{display:inline}}
+@media (max-width:600px){.cg-frame{border-radius:14px}}
+.cg-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;background:repeating-linear-gradient(135deg,#faf7ee 0 14px,#f4efe1 14px 28px);border:2px dashed #d9cfb4;box-shadow:none;color:var(--mut)}
+.cg-empty svg{color:#c8962a;margin-bottom:6px}.cg-empty b{color:var(--ink);font-size:1.1rem}
+/* Rental slideshow photo: click halves / swipe (reuses the .cg-half hover labels). */
+.ss-frame{user-select:none;-webkit-user-select:none;touch-action:pan-y}
+.ss-frame:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.ss-frame .cg-half{background:none}.ss-frame .cg-half span{background:rgba(0,0,0,.6)}

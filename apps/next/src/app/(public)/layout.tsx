@@ -4,6 +4,7 @@ import { PublicNav } from '@/components/public-nav';
 import { settings } from '@/lib/biz';
 import { today } from '@/lib/util';
 import { ContactIcons } from '@/components/contact-list';
+import { ScrollReveal } from '@/components/scroll-reveal';
 
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const S = await settings();
@@ -14,6 +15,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
         <PublicNav />
       </div></header>
       <main>{children}</main>
+      <ScrollReveal />
       <footer className="footer">
         <div className="fwrap cols fcols">
           <nav className="flinks" aria-label="Footer"><Link href="/#about">About Us</Link><Link href="/privacy">Privacy Policy</Link></nav>

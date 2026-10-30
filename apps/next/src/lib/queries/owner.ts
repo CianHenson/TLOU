@@ -113,6 +113,7 @@ export function auditFilter(q: Record<string, string>) {
   const w: string[] = [], p: unknown[] = [];
   if (q.q) { const l = `%${U.str(q.q, 60)}%`; w.push('(action LIKE ? OR detail LIKE ? OR username LIKE ? OR entity_id LIKE ?)'); p.push(l, l, l, l); }
   if (q.entity) { w.push('entity=?'); p.push(U.str(q.entity, 30)); }
+  if (q.action) { w.push('action=?'); p.push(U.str(q.action, 60)); }
   if (U.isDate(q.from)) { w.push('SUBSTR(at,1,10)>=?'); p.push(q.from); }
   if (U.isDate(q.to)) { w.push('SUBSTR(at,1,10)<=?'); p.push(q.to); }
   return { sql: `SELECT * FROM audit_logs ${w.length ? 'WHERE ' + w.join(' AND ') : ''} ORDER BY id DESC`, p };

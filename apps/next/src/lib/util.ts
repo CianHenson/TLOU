@@ -53,3 +53,5 @@ export const csvCell = (v: unknown) => {
 export const toCsv = (head: unknown[], rows: unknown[][]) => '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
 /** 2026-10-26 -> October 26, 2026 */
 export const longDate = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+/** "06:01 PM" from a stored "YYYY-MM-DD HH:mm[:ss]" timestamp. */
+export const time12 = (dt: string) => { const h = +dt.slice(11, 13); return `${String(h % 12 || 12).padStart(2, '0')}:${dt.slice(14, 16)} ${h < 12 ? 'AM' : 'PM'}`; };

@@ -22,6 +22,7 @@ const ICONS: Record<string, ReactNode> = {
   '/app/attendance-monitor': <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   '/app/attendance': <path d="M3 5h18v16H3zM3 9h18M8 3v4M16 3v4M9 15l2 2 4-4" />,
   '/app/employees': <><circle cx="9" cy="7" r="4" /><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
+  '/app/audit': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></>,
   '/app/profile': <><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>,
   '/app/customers': <><path d="M3 4h18v16H3z" /><circle cx="9" cy="10" r="2" /><path d="M15 9h3M15 13h3M6 16a3 3 0 0 1 6 0" /></>,
   '/app/requests': <path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />,
@@ -72,7 +73,7 @@ function UserMenu({ userName, roleLabel }: { userName: string; roleLabel: string
     <div className="side-acct">
       <button ref={btn} type="button" className="side-user" onClick={toggle} aria-haspopup="menu" aria-expanded={!!pos} title={`${userName} · ${roleLabel}`}>
         <span className="avatar" aria-hidden="true">{initials(userName)}</span>
-        <span className="lbl"><b>{userName}</b><small>{roleLabel}</small></span>
+        <span className="lbl"><b>{userName.trim().split(/\s+/)[0] || userName}</b><small>{roleLabel}</small></span>
       </button>
       {pos && createPortal(
         <div ref={menu} className="user-menu" role="menu" style={{ left: pos.left, bottom: pos.bottom }}>
