@@ -59,7 +59,7 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
     const search = U.str(q.q, 60).toLowerCase();
     const [users, rows] = await Promise.all([
       availableUsers(),
-      Promise.all(all.filter((e) => !search || `${e.name} ${e.username} ${e.designation ?? ''}`.toLowerCase().includes(search))
+      Promise.all(all.filter((e) => !search || `${e.name} ${e.email} ${e.designation ?? ''}`.toLowerCase().includes(search))
         .map(async (e) => ({ ...e, ...(await workSummary(e, mFrom, td)) }))),
     ]);
     actions = <AddEmployeeButton users={users} />;

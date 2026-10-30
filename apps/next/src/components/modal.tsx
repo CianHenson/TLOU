@@ -9,14 +9,14 @@ import { useFlash } from './flash';
  * Modal dialog that is open while mounted: render it conditionally and unmount it in `onClose`. `children` gets a
  * `close()` that runs the closing animation path (Esc, ×, backdrop click and Cancel all end in `onClose`).
  */
-export function Modal({ title, onClose, width = 620, children }: { title: ReactNode; onClose: () => void; width?: number; children: (close: () => void) => ReactNode }) {
+export function Modal({ title, onClose, width = 620, hidden, children }: { title: ReactNode; onClose: () => void; width?: number; /** Keep mounted (form state kept) but not shown. */ hidden?: boolean; children: (close: () => void) => ReactNode }) {
   const dlg = useRef<HTMLDialogElement | null>(null);
   // ShellPortal mounts its children a render late, so open the dialog when the element actually attaches.
   const attach = (el: HTMLDialogElement | null) => { dlg.current = el; if (el && !el.open) el.showModal(); };
   const close = () => dlg.current?.close();
   return (
     <ShellPortal>
-      <dialog ref={attach} className="modal wide" style={{ width: `min(${width}px, calc(100vw - 32px))` }} aria-label={typeof title === 'string' ? title : undefined}
+      <dialog ref={attach} className="modal wide" style={{ width: `min(${width}px, calc(100vw - 32px))`, display: hidden ? 'none' : undefined }} aria-label={typeof title === 'string' ? title : undefined}
         onClose={onClose} onClick={(e) => { if (e.target === dlg.current) close(); }}>
         <div className="modal-head">
           <h3>{title}</h3>

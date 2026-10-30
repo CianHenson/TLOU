@@ -22,8 +22,8 @@ export function LoginForm() {
       <p className="lg-sub">Enter your credentials to continue</p>
       <FlashBar />
       <div className="lg-field">
-        <label htmlFor="u">Username</label>
-        <input id="u" name="username" autoComplete="username" required autoFocus />
+        <label htmlFor="u">Email or username</label>
+        <input id="u" type="text" name="email" autoComplete="username" autoCapitalize="none" spellCheck={false} data-no-caps required autoFocus />
       </div>
       <div className="lg-field">
         <label htmlFor="p">Password</label>

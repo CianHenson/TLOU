@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { FlashProvider } from '@/components/flash';
+import { AutoCapitalize } from '@/components/auto-capitalize';
 import { settings } from '@/lib/biz';
 import './globals.css';
 
@@ -17,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en">
-      <body><FlashProvider>{children}</FlashProvider></body>
+      <body><AutoCapitalize /><FlashProvider>{children}</FlashProvider></body>
     </html>
   );
 }

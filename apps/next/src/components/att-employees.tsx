@@ -30,7 +30,7 @@ export function AddEmployeeButton({ users }: { users: Row[] }) {
           {(close) => users.length ? (
             <ApiForm action="/api/attendance-monitor/employees" stay onDone={(d) => { if (d.ok) close(); }}>
               <p className="small muted" style={{ marginTop: 0 }}>Choose a registered Staff account. Their name and login stay in User Management; here you only set attendance and pay.</p>
-              <Field name="user_id" label="Registered user *" type="select" emptyLabel="— Choose a user —" options={users.map((u) => [u.id, `${u.name} (@${u.username})${u.designation ? ` · ${u.designation}` : ''}`])} attrs={{ required: true }} />
+              <Field name="user_id" label="Registered user *" type="select" emptyLabel="— Choose a user —" options={users.map((u) => [u.id, `${u.name} (${u.email})${u.designation ? ` · ${u.designation}` : ''}`])} attrs={{ required: true }} />
               <Field name="hourly_rate" label="Hourly rate (₱) *" attrs={{ inputMode: 'decimal', placeholder: '0.00', required: true, onInput: moneyInput }} hint="Used for payroll: total hours worked × hourly rate." />
               <p className="small muted">New employees start on the default schedule (08:00–17:00, Mon–Fri). Change it with right-click → Edit.</p>
               <div className="row"><Submit>Add employee</Submit> <button type="button" className="btn ghost" onClick={close}>Cancel</button></div>
@@ -96,7 +96,7 @@ export function EmployeeTable({ rows, monthLabel, month, searching = false }: { 
         <tbody>
           {rows.map((e, i) => (
             <tr key={e.employee_id} {...rowProps(i, e.active ? '' : 'off')} onDoubleClick={() => edit(Number(e.employee_id))}>
-              <td>{e.name}<div className="small muted">@{e.username}</div></td><td>{e.designation || '—'}</td>
+              <td>{e.name}<div className="small muted">{e.email}</div></td><td>{e.designation || '—'}</td>
               <td className="nowrap">{e.sched_start}–{e.sched_end}<div className="small muted">{String(e.workdays).split(',').filter(Boolean).map((d) => WEEKDAYS[Number(d)]).join(', ')}</div></td>
               <td className="num">{e.hourly_rate ? peso(e.hourly_rate) : <span className="badge b-warn">Not set</span>}</td>
               <td><span className={`badge ${e.active && e.user_active ? 'b-ok' : 'b-err'}`}>{e.active ? (e.user_active ? 'Active' : 'Account off') : 'Deactivated'}</span></td>

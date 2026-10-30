@@ -15,14 +15,14 @@ export const POST = api(async (req, ctx) => {
   const { b } = await form(req);
   const { e, errors, pw } = employeeInput(b, false);
   if (old.role === 'owner') { e.role = 'owner'; e.active = 1; e.can_expenses = 1; }
-  if (!errors.username && await db.get('SELECT 1 FROM users WHERE LOWER(username)=? AND id!=?', [e.username, old.id])) errors.username = 'Already taken.';
+  if (!errors.email && await db.get('SELECT 1 FROM users WHERE (LOWER(email)=? OR LOWER(username)=?) AND id!=?', [e.email, e.email, old.id])) errors.email = 'Already registered.';
   if (old.id === user.id && (!e.active || e.role !== old.role)) errors.first_name = 'You cannot deactivate or change the role of your own account.';
   if (Object.keys(errors).length) return invalid(errors);
   const hash = pw ? await hashPassword(pw) : null;
   await tx(async (d) => {
     // Account details only; the work schedule columns are left as they are.
     await d.run(`UPDATE users SET name=?,first_name=?,last_name=?,email=?,username=?,role=?,designation=?,active=?,can_expenses=? WHERE id=?`,
-      [e.name, e.first_name, e.last_name, e.email, e.username, e.role, e.designation || null, e.active, e.can_expenses, old.id]);
+      [e.name, e.first_name, e.last_name, e.email, e.email, e.role, e.designation || null, e.active, e.can_expenses, old.id]);
     if (hash) await d.run('UPDATE users SET password_hash=?, must_change_pw=1 WHERE id=?', [hash, old.id]);
   });
   await audit({ user, ip: clientIp(req) }, 'employee.update', 'user', old.id, {
