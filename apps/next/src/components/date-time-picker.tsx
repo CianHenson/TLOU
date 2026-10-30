@@ -3,7 +3,7 @@
 // following light / dark mode. Values are submitted through a hidden input: dates as 'YYYY-MM-DD', times as 'HH:MM' (24 h).
 // The popover is position:fixed so modal / table overflow can't clip it. DateField / TimeField add the label and the
 // server-side error from the surrounding <ApiForm>, like <Field>.
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useFormState } from './form';
 
 const Icon = ({ d }: { d: string }) => (
@@ -131,41 +131,39 @@ const to12 = (t: string) => { const h = +t.slice(0, 2); return { h: h % 12 || 12
 const to24 = (h: number, m: number, ap: string) => `${pad((h % 12) + (ap === 'PM' ? 12 : 0))}:${pad(m)}`;
 const shortTime = (t: string) => { const x = to12(t); return `${x.h}:${pad(x.m)} ${x.ap}`; };
 
+/**
+ * Inline 12-hour time entry: separate Hour / Minute / AM-PM selects (keyboard friendly, native on touch). The value is still
+ * submitted as 'HH:MM' (24 h) through a hidden input, or '' when nothing is chosen. Choosing only some parts is an error.
+ */
 export function TimePicker({ name, defaultValue = '', ariaLabel, invalid }: { name: string; defaultValue?: string; ariaLabel: string; invalid?: boolean }) {
-  const [val, setVal] = useState(defaultValue);
-  const p = usePopover(300);
-  const cur = to12(val || '12:00');
-  const set = (part: Partial<typeof cur>) => { const n = { ...cur, ...part }; setVal(to24(n.h, n.m, n.ap)); };
-  // Scroll the selected hour / minute into view when the popover opens.
-  useEffect(() => { p.pop.current?.querySelectorAll('.on').forEach((el) => el.scrollIntoView({ block: 'center' })); }, [p.pos]); // eslint-disable-line react-hooks/exhaustive-deps
-  const col = (items: number[], sel: number, fmt: (n: number) => string, on: (n: number) => void, label: string): ReactNode => (
-    <div className="tp-col" role="listbox" aria-label={label}>
-      {items.map((n) => <button key={n} type="button" role="option" aria-selected={!!val && n === sel} className={val && n === sel ? 'on' : ''} onClick={() => on(n)}>{fmt(n)}</button>)}
-    </div>
+  const init = /^\d{2}:\d{2}/.test(defaultValue) ? to12(defaultValue) : null;
+  const [t, setT] = useState({ h: init ? String(init.h) : '', m: init ? pad(init.m) : '', ap: init ? init.ap : '' });
+  const hr = useRef<HTMLSelectElement>(null);
+  const filled = [t.h, t.m, t.ap].filter(Boolean).length;
+  const partial = filled > 0 && filled < 3;
+  const val = filled === 3 ? to24(+t.h, +t.m, t.ap) : '';
+  const msg = partial ? `Choose the ${[!t.h && 'hour', !t.m && 'minute', !t.ap && 'AM or PM'].filter(Boolean).join(', ')} to complete the time.` : '';
+  useEffect(() => { hr.current?.setCustomValidity(msg); }, [msg]);
+  const sel = (k: 'h' | 'm' | 'ap', label: string, placeholder: string, opts: string[]) => (
+    <select ref={k === 'h' ? hr : undefined} className={`tp-sel ${t[k] ? '' : 'empty'}`} aria-label={`${ariaLabel} ${label}`} aria-invalid={partial && !t[k] ? true : undefined}
+      value={t[k]} onChange={(e) => setT({ ...t, [k]: e.target.value })}>
+      <option value="">{placeholder}</option>
+      {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
   );
   return (
-    <span className="dp">
+    <div className="tp-inline">
       <input type="hidden" name={name} value={val} />
-      <button ref={p.btn} type="button" className={`dd-btn dp-btn ${val ? '' : 'empty'} ${invalid ? 'bad' : ''}`} aria-label={`${ariaLabel}${val ? ': ' + shortTime(val) : ''}`}
-        aria-haspopup="dialog" aria-expanded={!!p.pos} onClick={p.toggle}>
-        <Icon d={CLOCK} /><span>{val ? shortTime(val) : 'Select time'}</span>
-      </button>
-      {p.pos && (
-        <div ref={p.pop} className="dp-pop tp-pop" role="dialog" aria-label={ariaLabel} style={p.pos}>
-          <div className="tp-cols">
-            {col(Array.from({ length: 12 }, (_, i) => i + 1), cur.h, String, (h) => set({ h }), 'Hour')}
-            {col(Array.from({ length: 60 }, (_, i) => i), cur.m, pad, (m) => set({ m }), 'Minute')}
-            <div className="tp-col" role="listbox" aria-label="AM or PM">
-              {['AM', 'PM'].map((ap) => <button key={ap} type="button" role="option" aria-selected={!!val && cur.ap === ap} className={val && cur.ap === ap ? 'on' : ''} onClick={() => set({ ap })}>{ap}</button>)}
-            </div>
-          </div>
-          <div className="dp-foot">
-            {val && <button type="button" className="dp-link" onClick={() => { setVal(''); p.close(); }}>Clear</button>}
-            <button type="button" className="btn sm" onClick={() => { if (!val) setVal('12:00'); p.close(); }}>Done</button>
-          </div>
-        </div>
-      )}
-    </span>
+      <div className={`tp-row ${invalid || partial ? 'bad' : ''}`} role="group" aria-label={ariaLabel}>
+        {sel('h', 'hour', 'Hour', Array.from({ length: 12 }, (_, i) => String(i + 1)))}
+        <span className="tp-colon" aria-hidden="true">:</span>
+        {sel('m', 'minute', 'Min', Array.from({ length: 60 }, (_, i) => pad(i)))}
+        {sel('ap', 'AM or PM', 'AM/PM', ['AM', 'PM'])}
+        {filled > 0 && <button type="button" className="tp-clear" aria-label={`Clear ${ariaLabel.toLowerCase()}`} title="Clear time" onClick={() => setT({ h: '', m: '', ap: '' })}>×</button>}
+      </div>
+      <div className="small tp-sum" aria-live="polite">{val ? `Selected: ${shortTime(val)}` : 'Optional · 12-hour format'}</div>
+      {partial && <div className="err" role="alert">{msg}</div>}
+    </div>
   );
 }
 

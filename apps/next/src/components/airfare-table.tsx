@@ -2,7 +2,7 @@
 // Airfare Sales table with file-explorer style row selection (see row-select.tsx). The footer line shows the record count
 // and total amount / agency income (cancelled sales excluded), for the selection while rows are selected; right-click edits one sale
 // or, for the owner, deletes the selection.
-import Link from 'next/link';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { peso } from '@/lib/util';
 import type { Row } from '@/lib/types';
@@ -12,6 +12,36 @@ import { useRowSelection } from './row-select';
 import { NEW_SALE_EVT } from './new-sale-button';
 
 const CLS: Record<string, string> = { Pending: 'b-warn', Done: 'b-ok', Rebooked: 'b-info', 'No-show': 'b-err', Cancelled: 'b-err' };
+
+/** Small fixed-position popover opened from a table cell, so wide details (contact, fees) don't need extra columns. */
+function Peek({ label, children, panel }: { label: ReactNode; children?: never; panel: ReactNode }) {
+  const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null), pop = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pos) return;
+    const out = (e: Event) => { if (!btn.current?.contains(e.target as Node) && !pop.current?.contains(e.target as Node)) setPos(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setPos(null); btn.current?.focus(); } };
+    const away = (e: Event) => { if (!pop.current?.contains(e.target as Node)) setPos(null); };
+    document.addEventListener('mousedown', out); document.addEventListener('keydown', esc);
+    window.addEventListener('scroll', away, true); window.addEventListener('resize', away);
+    return () => { document.removeEventListener('mousedown', out); document.removeEventListener('keydown', esc); window.removeEventListener('scroll', away, true); window.removeEventListener('resize', away); };
+  }, [pos]);
+  const toggle = () => {
+    if (pos) return setPos(null);
+    const r = btn.current!.getBoundingClientRect(), below = window.innerHeight - r.bottom > 200;
+    setPos({ left: Math.max(8, Math.min(r.left, window.innerWidth - 276)), ...(below ? { top: r.bottom + 4 } : { bottom: window.innerHeight - r.top + 4 }) });
+  };
+  return (
+    <>
+      <button ref={btn} type="button" className="peek-btn" aria-haspopup="dialog" aria-expanded={!!pos} onClick={toggle}>
+        {label}<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {pos && <div ref={pop} className="peek-pop" role="dialog" style={pos}>{panel}</div>}
+    </>
+  );
+}
+
+const Line = ({ k, v, c }: { k: string; v: ReactNode; c?: string }) => <div className="peek-line"><span>{k}</span><strong style={c ? { color: c } : undefined}>{v}</strong></div>;
 
 export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: boolean; totals: { n_all: number; total: number; sc: number; fee: number } }) {
   const router = useRouter();
@@ -36,28 +66,35 @@ export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: bool
   const sum = (k: string) => counted.reduce((s, r) => s + Number(r[k] || 0), 0);
   const skipped = picked.length - counted.length;
   return (
-    <div className="tw tw-fixed tw-sel" ref={wrap} onContextMenu={emptyMenu}>
+    <div className="tw tw-fixed tw-fm tw-sel af-tw" ref={wrap} onContextMenu={emptyMenu}>
       <table><thead><tr>
-        <th>Transaction date</th><th>Airline</th><th>PNR</th><th className="num">PAX</th><th>Passenger</th><th>Contact number</th><th>Email / Facebook</th><th>Origin</th><th>Destination</th>
-        <th>Travel date</th><th>Time</th><th>Check-in</th><th>Airline ID / flight no.</th><th className="num">Total amount</th><th className="num">Service charge</th>
-        <th className="num">Card fee</th><th>Remarks</th><th></th></tr></thead><tbody>
+        <th>Transaction date</th><th>Airline</th><th>PNR</th><th className="num">PAX</th><th>Passenger</th><th>Contact</th><th>Route</th>
+        <th>Travel</th><th>Check-in</th><th>Flight no.</th><th className="num">Total amount</th></tr></thead><tbody>
         {rows.map((r, i) => (
-          <tr key={r.id} {...rowProps(i, r.checkin_status === 'Cancelled' ? 'off' : '')}>
+          <tr key={r.id} {...rowProps(i, r.checkin_status === 'Cancelled' ? 'off' : '')} title="Double-click to edit"
+            onDoubleClick={(e) => { if (!(e.target as Element).closest('a, button, input, select, textarea, label, [role=dialog]')) router.push(`/app/airfare/${r.id}`); }}>
             <td className="nowrap">{r.txn_date}</td><td className="nowrap">{r.airline}</td><td><strong>{r.pnr}</strong></td><td className="num">{r.pax}</td><td>{r.passenger}</td>
-            <td className="nowrap">{r.contact}</td><td>{r.email_fb}</td><td>{r.origin}</td><td>{r.destination}</td><td className="nowrap">{r.travel_date}</td><td>{r.travel_time}</td>
-            <td><span className={`badge ${CLS[r.checkin_status] ?? ''}`}>{r.checkin_status}</span></td><td>{r.flight_no}</td><td className="num">{peso(r.total_amount)}</td>
-            <td className="num">{peso(r.service_charge)}</td><td className="num" style={{ color: r.card_fee ? 'var(--err)' : undefined }}>{r.card_fee ? `(${peso(r.card_fee)})` : '—'}</td>
-            <td className="small">{r.remarks}</td>
-            <td className="nowrap"><Link href={`/app/airfare/${r.id}`}>Edit</Link>
-              {owner && <button type="button" className="btn danger sm" style={{ marginLeft: 8 }} onClick={() => remove([Number(r.id)])}>Delete</button>}</td>
+            <td>{r.contact || r.email_fb || r.remarks
+              ? <Peek label={r.contact || 'Details'} panel={<>
+                  <Line k="Contact number" v={r.contact || '—'} /><Line k="Email / Facebook" v={r.email_fb || '—'} />
+                  {r.remarks && <Line k="Remarks" v={r.remarks} />}</>} />
+              : '—'}</td>
+            <td>{r.origin} → {r.destination}</td><td className="nowrap">{r.travel_date}{r.travel_time ? <div className="small">{r.travel_time}</div> : null}</td>
+            <td><span className={`badge ${CLS[r.checkin_status] ?? ''}`}>{r.checkin_status}</span></td><td className="nowrap">{r.flight_no}</td>
+            <td className="num"><Peek label={peso(r.total_amount)} panel={<>
+              <Line k="Total amount" v={peso(r.total_amount)} /><Line k="Service charge" v={peso(r.service_charge)} />
+              <Line k="Card fee" v={r.card_fee ? `(${peso(r.card_fee)})` : '—'} c={r.card_fee ? 'var(--err)' : undefined} />
+              <Line k="Agency income" v={peso(Number(r.service_charge || 0) - Number(r.card_fee || 0))} /></>} /></td>
           </tr>
         ))}
-        {!rows.length && <tr><td colSpan={18} className="empty"><span className="empty-msg">No airfare sales recorded.</span></td></tr>}
+        {!rows.length && <tr><td colSpan={11} className="empty"><span className="empty-msg">No airfare sales recorded.</span></td></tr>}
+        {/* Filler row stretches to the bottom so the footer below always sits at the bottom of the table area. */}
+        {!!rows.length && <tr className="fill"><td colSpan={11} /></tr>}
       </tbody>
       {/* Totals leave out cancelled sales (as everywhere else); `totals` covers every filtered sale, not just this page. */}
-      {!!rows.length && <FootLine cols={18} total={totals.n_all} selected={picked.length} right={picked.length
+      <FootLine cols={11} total={totals.n_all} selected={picked.length} right={picked.length
         ? `${skipped ? `${skipped} cancelled not counted · ` : ''}Total amount: ${peso(sum('total_amount'))} · Agency income: ${peso(sum('service_charge') - sum('card_fee'))}`
-        : `Total amount: ${peso(totals.total)} · Agency income: ${peso(totals.sc - totals.fee)}`} />}
+        : `Total amount: ${peso(totals.total)} · Agency income: ${peso(totals.sc - totals.fee)}`} />
       </table>
       {menu && (
         <div className="ctx-menu" role="menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
