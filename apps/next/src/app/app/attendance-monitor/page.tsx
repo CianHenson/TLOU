@@ -10,6 +10,7 @@ import { DateRangeFilter, TableFilters } from '@/components/list-filters';
 import { AttendanceTable } from '@/components/att-records';
 import { AddEmployeeButton, EmployeeTable } from '@/components/att-employees';
 import { RequestsButton } from '@/components/att-requests';
+import { CorrectionsButton } from '@/components/att-corrections';
 import { GeneratePayrollButton, PayrollTable } from '@/components/att-payroll';
 import { SectionSelect } from '@/components/att-section';
 
@@ -24,9 +25,11 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
   const tab = TABS.includes(q.tab) ? q.tab : 'attendance';
   const td = U.today();
   const [mFrom, mTo] = U.monthRange(td.slice(0, 7));
-  const [requests, all, staff, leaves] = await Promise.all([
+  const [requests, all, staff, leaves, corrections] = await Promise.all([
     leaveRequests(), allEmployees(), activeEmployees(),
     db.all(`SELECT l.*, u.name FROM leaves l LEFT JOIN users u ON u.id=l.user_id WHERE l.day>=? AND l.request_id IS NULL ORDER BY l.day LIMIT 50`, [U.addDays(td, -30)]),
+    db.all(`SELECT c.*, u.name, b.name AS reviewer FROM attendance_correction_requests c JOIN users u ON u.id=c.user_id LEFT JOIN users b ON b.id=c.reviewed_by
+      WHERE c.status='Pending' OR c.created_at>=? ORDER BY c.status='Pending' DESC, c.created_at DESC`, [U.addDays(td, -120) + ' 00:00:00']),
   ]);
   const uid = U.intOrNull(q.uid);
   const empOpts: [string, string][] = [['', 'All employees'], ...all.map((e): [string, string] => [String(e.id), e.active ? e.name : `${e.name} (deactivated)`])];
@@ -85,7 +88,7 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
   }
 
   return (
-    <Page title="Attendance Monitoring & Payroll" filters={filters} actions={<><HolidaysButton rows={leaves} staff={staff} /><RequestsButton rows={requests} />{actions}</>}>
+    <Page title="Attendance Monitoring & Payroll" filters={filters} actions={<><HolidaysButton rows={leaves} staff={staff} /><RequestsButton rows={requests} /><CorrectionsButton rows={corrections} />{actions}</>}>
       {body}
     </Page>
   );

@@ -40,7 +40,7 @@ type Need = 'user' | 'owner' | 'expenses';
 const allowed = (u: SessionUser, need: Need) => need === 'user' || (need === 'owner' ? isOwner(u) : isOwner(u) || u.can_expenses);
 
 /** The only /app pages the owner sees (each entry also covers its sub-pages). Everything else redirects to the dashboard. */
-const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/finance', '/app/finance-monitor', '/app/expenses', '/app/employees', '/app/payslip', '/app/audit', '/app/profile', '/app/forbidden'];
+const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/finance-monitor', '/app/expenses', '/app/employees', '/app/payslip', '/app/audit', '/app/profile', '/app/forbidden'];
 const ownerHidden = (path: string) => path !== '/app' && !OWNER_MODULES.some((m) => path === m || path.startsWith(m + '/'));
 
 /** For pages / layouts: returns the user or redirects. Forbidden roles get /app/forbidden. */

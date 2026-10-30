@@ -1,8 +1,8 @@
 'use client';
 // Owner dashboard charts (Recharts): money trend, airfare trend and the attendance donut. Text / grid colours come from CSS (.dchart).
-import { Area, AreaChart, Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-const GOLD = '#c99a2e', BROWN = '#b5651d', GREEN = '#2f7d4a', RED = '#b23a2b', SAND = '#e3c26a', GREY = '#cfc7b0';
+const GOLD = '#c99a2e', BROWN = '#b5651d', GREEN = '#2f7d4a', RED = '#b23a2b', GREY = '#cfc7b0';
 const k = (v: number | string) => { const n = Number(v); return '₱' + (Math.abs(n) >= 1000 ? (n / 1000).toLocaleString('en-PH', { maximumFractionDigits: 1 }) + 'k' : n.toLocaleString('en-PH')); };
 const full = (v: unknown) => '₱' + Number(v).toLocaleString('en-PH', { maximumFractionDigits: 2 });
 const date = (m: unknown) => new Date(m + '-01T00:00:00');
@@ -28,8 +28,6 @@ export function MoneyTrend({ months, sales, expenses, net }: { months: string[];
         <XAxis dataKey="m" tickFormatter={mon} {...axis} /><YAxis tickFormatter={k} width={56} {...axis} />
         <Tooltip formatter={(v) => full(v)} labelFormatter={monLong} />
         <Legend iconType="circle" iconSize={8} />
-        <Bar dataKey="sales" name="Booking sales" fill={GOLD} radius={[5, 5, 0, 0]} maxBarSize={22} />
-        <Bar dataKey="expenses" name="Expenses" fill={SAND} radius={[5, 5, 0, 0]} maxBarSize={22} />
         <Line type="monotone" dataKey="net" name="Net result" stroke={GREEN} strokeWidth={2.5} dot={false} />
       </ComposedChart>
     </ResponsiveContainer></div>

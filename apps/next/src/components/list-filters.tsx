@@ -49,7 +49,9 @@ export interface ToolbarDropdown { key: string; label: string; value: string; op
  * Toolbar above the table columns: search box (query key `q`) and themed dropdowns on the left, Export on the right.
  * A dropdown's '' option clears its key.
  */
-export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitle, exportNote, lead }: {
+export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitle, exportNote, lead, trail }: {
+  /** Shown at the far right of the toolbar (e.g. My Attendance's payslip button). */
+  trail?: ReactNode;
   /** Shown right after the search box, before the dropdowns (e.g. a section switcher). */
   lead?: ReactNode;
   /** Without `exportHref` the Export button is left out. */
@@ -79,6 +81,7 @@ export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitl
             allLabel={String(Array.isArray(d.options[0]) ? d.options[0][1] : d.options[0])} options={d.options.slice(1).map((o) => (Array.isArray(o) ? o[0] : o))} />
         : <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />)}
       {exportHref && <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => confirmExport(e, exportHref, exportNote)}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>}
+      {trail && <span className={exportHref ? undefined : 'tt-trail'}>{trail}</span>}
     </form>
   );
 }

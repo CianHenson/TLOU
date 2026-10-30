@@ -666,3 +666,65 @@ td.empty:has(>.empty-msg){text-align:left}
 .tp-clear:hover{color:var(--ink);background:rgba(199,154,43,.14)}
 .tp-clear:focus-visible,.tp-sel:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 .tp-sum{color:var(--mut)}
+
+/* Announcements: pinned one on top, regular one below */
+.annstack{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}.annstack .annb{margin-bottom:0}
+.annb.second{padding:14px 20px 14px 24px}.annb.second .annb-icon{width:38px;height:38px}.annb.second .annb-text{font-size:1rem}
+.annb-pin{display:flex;align-items:center;gap:8px;margin:2px 0 14px;font-size:.9rem;flex-wrap:wrap}.annb-pin input{width:auto}
+
+/* Staff dashboard: attendance calendar + my requests */
+.dcal{align-items:stretch}
+.reqcard{height:0;min-height:100%;display:flex;flex-direction:column;overflow:hidden}.reqcard .reqlist{flex:1;min-height:0;overflow-y:auto}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.cal-head h3{margin:0}
+.cal-nav{display:flex;gap:6px;align-items:center}.cal-nav a{padding:.1em .7em;border:1px solid var(--line);border-radius:999px;color:var(--ink);text-decoration:none;font-weight:650}
+.cal-nav a:hover{border-color:var(--brand);background:rgba(232,195,94,.15)}.cal-today{font-size:.82rem}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding-bottom:2px}
+.cal-d{position:relative;height:42px;display:grid;place-items:center;border-radius:10px;font-size:.92rem;color:var(--ink);text-decoration:none}
+.cal-d.empty{visibility:hidden}.cal-d.today{outline:2px solid var(--brand-t);outline-offset:-2px}
+.cal-d.work{background:linear-gradient(135deg,#e8c35e,#c99a2e);color:var(--on-brand);font-weight:700;cursor:pointer;transition:transform .12s}
+.cal-d.work:hover,.cal-d.work:focus-visible{transform:scale(1.08);z-index:3}
+.cal-d.work.late{box-shadow:inset 0 0 0 2px rgba(178,58,43,.55)}
+.cal-d.absent{color:#b23a2b;background:rgba(178,58,43,.1)}
+.cal-tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);z-index:5;display:none;flex-direction:column;gap:2px;min-width:190px;padding:8px 12px;border-radius:10px;
+  background:#2b2417;color:#fff;font-size:.78rem;font-weight:500;line-height:1.4;text-align:left;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.25);pointer-events:none}
+.cal-tip b{font-weight:700}.cal-tip em{font-style:normal;font-weight:700;color:#e8c35e}
+.cal-d.tip-l .cal-tip{left:0;transform:none}.cal-d.tip-r .cal-tip{left:auto;right:0;transform:none}
+.cal-d.work:hover .cal-tip,.cal-d.work:focus-visible .cal-tip{display:flex}
+.cal-foot{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:12px;font-size:.82rem;color:var(--mut)}.cal-foot b{margin-left:auto;color:var(--ink)}
+.cal-foot i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}.cal-foot i.work{background:#c99a2e}.cal-foot i.absent{background:rgba(178,58,43,.5)}
+.reqlist{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:10px}
+.reqlist li{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}.reqlist li:last-child{border-bottom:0}
+@media (max-width:900px){.dcal{grid-template-columns:1fr}}
+
+/* My Attendance: the row opened from the dashboard calendar pulses softly like a heartbeat (3 beats, about 3.6 s): the highlight swells and eases, no movement */
+@keyframes hbeat{0%,100%{background:rgba(232,195,94,.12)}18%{background:rgba(232,195,94,.5)}34%{background:rgba(232,195,94,.2)}52%{background:rgba(232,195,94,.42)}75%{background:rgba(232,195,94,.14)}}
+tr.hb td{animation:hbeat 1.2s ease-in-out 3}
+@media (prefers-reduced-motion:reduce){tr.hb td{animation:none;background:rgba(232,195,94,.4)}}
+
+/* My Attendance: correction form lines (what to correct + the value + remove) */
+.corr-line{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:6px}.corr-line .field{margin-bottom:8px}.corr-x{margin-bottom:8px}
+@media (max-width:600px){.corr-line{grid-template-columns:1fr}}
+
+/* Schedule modal */
+.cal-btn{padding:.1em .7em;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-weight:650;cursor:pointer}.cal-btn:hover{border-color:var(--brand);background:rgba(232,195,94,.15)}
+.sch-chips{display:flex;flex-wrap:wrap;gap:10px}
+.sch-chips>div{display:flex;flex-direction:column;gap:2px;padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(232,195,94,.1)}
+.sch-chips span{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}.sch-chips b{font-size:.98rem}
+.sch-grid{gap:8px}
+.sch-d{height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.95rem;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--mut)}
+.sch-d b{font-weight:650}.sch-d span{font-size:.64rem;line-height:1.25;text-align:center;font-weight:500}
+.sch-d.sch-work{background:rgba(232,195,94,.16);border-color:rgba(201,154,46,.4);color:var(--ink)}.sch-d.sch-work span{color:var(--brand-t);font-weight:650}
+.sch-d.sch-off{background:rgba(60,110,200,.1);border-color:rgba(60,110,200,.3);color:var(--ink)}.sch-d.sch-off span{color:#2f5fb0;font-weight:700}
+.sch-d.today{outline:2px solid var(--brand-t);outline-offset:1px}
+.tt-trail{margin-left:auto}
+
+/* Month + year picker (components/month-picker.tsx) */
+.af-menu.mp{min-width:248px;padding:12px}
+.mp-year{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mp-year b{font-size:1rem}
+.mp-year button{width:30px;height:30px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.mp-year button:hover:not(:disabled){border-color:var(--brand);background:rgba(232,195,94,.15)}.mp-year button:disabled{opacity:.4;cursor:default}
+.mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mp-grid button{height:38px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-size:.92rem;cursor:pointer}
+.mp-grid button:hover:not(:disabled){background:rgba(232,195,94,.18)}.mp-grid button.on{background:var(--brand);color:var(--on-brand);font-weight:700}
+.mp-grid button:disabled{opacity:.35;cursor:default}

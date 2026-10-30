@@ -85,3 +85,6 @@ export const ATT_BADGE: Record<string, string> = { Present: 'b-ok', Late: 'b-war
 export const ATT_STATUSES = ['Present', 'Late', 'Clocked in', 'Incomplete', 'Absent', 'Approved leave', 'Holiday'];
 // Row shapes joined/decorated by queries are loosely typed on purpose; pages cast as needed.
 export type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** What a staff member can ask to correct on an attendance day (My Attendance → right-click → Apply for correction). */
+export const CORR_FIELDS: [string, string][] = [['time_in', 'Time in'], ['time_out', 'Time out'], ['status', 'Status']];
