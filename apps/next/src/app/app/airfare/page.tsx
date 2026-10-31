@@ -1,5 +1,9 @@
 import { requireUser, isOwner } from '@/lib/auth';
-import { AIRLINES, CHECKIN_STATUSES } from '@/lib/biz';
+import { CHECKIN_STATUSES } from '@/lib/biz';
+import { db } from '@/lib/db';
+import { activeAirlineNames } from '@/lib/queries/airlines';
+import { BatchUploadButton } from '@/components/batch-upload';
+import { AIRFARE_COLS } from '@/lib/batch-cols';
 import { flat, paginate } from '@/lib/list';
 import { longDate, today } from '@/lib/util';
 import { airfareFilters, airfareQuery, airfareTotals, needsCheckin } from '@/lib/queries/airfare';
@@ -17,15 +21,18 @@ export default async function Airfare(props: PageProps<'/app/airfare'>) {
   const [sql, p] = airfareQuery(q);
   const [list, soon, sums] = await Promise.all([paginate(q, sql, p, 25), needsCheckin(48), airfareTotals(sql, p)]);
   const { airlines, statuses } = airfareFilters(q);
-  // Airlines typed in by hand (outside the standard list) stay selectable once they are in the URL.
-  const airlineOpts = [...AIRLINES, ...airlines.filter((a) => !AIRLINES.includes(a))];
+  // The form offers the active airlines; the filter also lists airlines that only exist on older sales (deactivated or renamed).
+  const active = await activeAirlineNames();
+  const used = (await db.all<{ airline: string }>(`SELECT DISTINCT airline FROM airfare_sales WHERE airline<>''`)).map((r) => r.airline);
+  const airlineOpts = [...new Set([...active, ...used, ...airlines])].sort((a, b) => a.localeCompare(b));
   const dates = q.from || q.to ? `${q.by === 'travel' ? 'travel' : 'transaction'} dates ${q.from ? longDate(q.from) : 'start'} to ${q.to ? longDate(q.to) : 'today'}` : '';
-  const active = [dates, airlines.length && `airlines: ${airlines.join(', ')}`, statuses.length && `check-in: ${statuses.join(', ')}`, q.q && `search "${q.q}"`].filter(Boolean);
-  const note = active.length ? `Filters are active (${active.join(', ')}). Only the filtered sales will be exported.` : undefined;
+  const filtersOn = [dates, airlines.length && `airlines: ${airlines.join(', ')}`, statuses.length && `check-in: ${statuses.join(', ')}`, q.q && `search "${q.q}"`].filter(Boolean);
+  const note = filtersOn.length ? `Filters are active (${filtersOn.join(', ')}). Only the filtered sales will be exported.` : undefined;
   return (
     <Page title="Passenger Airfare Sales" actions={<>
       <CheckinButton rows={soon} />
-      <NewSaleButton today={today()} />
+      <BatchUploadButton title="Batch upload airfare sales" action="/api/airfare/batch" cols={AIRFARE_COLS} template="airfare-sales-template.csv" />
+      <NewSaleButton today={today()} airlines={active} />
     </>} filters={
       <div className="af-bar"><DateRangeFilter today={today()} initial={{
         by: q.by === 'travel' ? 'travel' : 'txn', from: q.from || '', to: q.to || '', range: q.range || (q.from || q.to ? 'custom' : '') }} /></div>

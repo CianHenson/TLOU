@@ -409,7 +409,7 @@ a.kpi:hover{transform:translateY(-2px);border-color:var(--brand)}
 .dgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:16px}
 .dpanel{margin:0;padding:20px 20px 12px;border-radius:16px;min-width:0}.dpanel.span2{grid-column:span 2}
 .dpanel>header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}.dpanel h3{margin:0;font-size:1rem}
-.dchart{position:relative;height:260px}.dchart.small{height:190px}
+.dchart{position:relative;height:230px}.dchart.small{height:190px}
 .dchart .recharts-cartesian-grid line{stroke:var(--line)}
 .dchart .recharts-text,.dchart .recharts-legend-item-text{fill:var(--mut)!important;color:var(--mut)!important;font-size:12px}
 .dchart .recharts-default-tooltip{background:var(--card)!important;border:1px solid var(--line)!important;border-radius:10px;color:var(--ink)}
@@ -728,3 +728,117 @@ tr.hb td{animation:hbeat 1.2s ease-in-out 3}
 .mp-grid button{height:38px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-size:.92rem;cursor:pointer}
 .mp-grid button:hover:not(:disabled){background:rgba(232,195,94,.18)}.mp-grid button.on{background:var(--brand);color:var(--on-brand);font-weight:700}
 .mp-grid button:disabled{opacity:.35;cursor:default}
+
+/* ---- Attendance break workflow ---- */
+.cb-times{display:flex;gap:16px;flex-wrap:wrap}
+.cb-times span{display:flex;flex-direction:column;min-width:56px}
+.cb-times small{font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:#bfae7c}
+.cb-times b{font-size:.98rem;color:#fff8e4;font-variant-numeric:tabular-nums}
+.cb-hint{font-size:.8rem;color:#e3d3a2}
+.cb-btns{gap:8px;flex-wrap:wrap}
+.clockbar .cb-btns .btn{padding:.65em 1.15em}
+.att-issue{color:var(--err);font-weight:600;margin-top:2px}
+
+/* Staff calendar: current + upcoming month side by side */
+.grid.dcal{grid-template-columns:minmax(0,2.3fr) minmax(0,1fr)}
+.cal-months{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.cal-month h4{margin:0 0 6px;font-size:.92rem;text-align:center}
+.cal .cal-d{height:34px;font-size:.84rem;border-radius:8px}
+.cal .cal-grid{gap:3px}
+.cal-d.future{color:var(--mut);opacity:.6}
+a.cal-d:not(.work):hover{background:rgba(232,195,94,.18)}
+.cal-warn{color:#ffb4a8}
+.cal-d:hover .cal-tip,.cal-d:focus-visible .cal-tip{display:flex}
+@media (max-width:1100px){.grid.dcal{grid-template-columns:1fr}.reqcard{height:auto;min-height:0}}
+@media (max-width:600px){.cal-months{grid-template-columns:1fr}}
+
+/* Announcements: pinned posts + compact stack */
+.annstack{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.annstack .annb{margin:0;padding:14px 20px;gap:14px}
+.annstack .annb-icon{width:40px;height:40px}
+.annstack .annb-text{font-size:1rem;margin-bottom:6px}
+.annb.pinned{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand),var(--sh)}
+.annb-pin-tag{display:inline-block;margin-right:8px;padding:2px 9px;border-radius:999px;background:var(--brand);color:var(--on-brand);font-size:.66rem;letter-spacing:.1em}
+.annb-act{display:inline-block;margin:0}
+.annb-btn+.annb-btn{background:var(--card);border-color:var(--line);color:var(--ink)}
+.annb-btn+.annb-btn:hover{background:rgba(232,195,94,.15);border-color:var(--brand)}
+.annb-btn.primary,.annb-btn.primary:hover{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.annb-btn.danger{color:var(--err)}.annb-btn.danger:hover{border-color:var(--err);background:rgba(178,58,43,.08)}
+.annb-btn:disabled{opacity:.5;cursor:not-allowed}
+.annh li.is-pinned{border-color:var(--brand)}
+.annh-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+
+.af-hint{margin:6px 0 0;font-size:.74rem;color:var(--side-mut,var(--mut))}
+.bu-msg{padding:8px 12px;border-radius:10px;background:rgba(178,58,43,.1);color:var(--err);font-size:.88rem;font-weight:600;margin-bottom:8px}
+.bu-list{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.84rem;display:grid;gap:6px}
+.bu-list b{color:var(--err);margin-right:6px}
+
+/* Payroll deductions */
+.ded-box{padding:10px 14px;margin:0 0 12px;border:1px solid var(--line);border-radius:12px;background:rgba(232,195,94,.08);font-size:.88rem}
+.ded-box ul{margin:6px 0 0;padding-left:18px}
+.ded-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;font-size:.88rem}
+.ps-h{margin:16px 0 6px;font-size:.95rem}
+.ps-sub td{border-top:1px solid var(--line)}
+
+/* Dashboard: compact so the owner view fits one screen at 100% zoom */
+.clockbar{padding:12px 18px;gap:12px 18px}
+.cb-icon{width:38px;height:38px}
+.cb-time{min-width:170px}.clock-time{font-size:1.5rem}
+.cb-who{min-width:0;gap:4px}
+.cb-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cb-times{gap:12px}
+.clockbar .cb-btns .btn{padding:.55em .95em;font-size:.88rem}
+.kpis{margin:12px 0 10px;gap:12px}
+.kpi{padding:12px 16px}.kpi .n{font-size:1.5rem;margin:4px 0 0}
+.attn{margin:0 0 12px}
+.dgrid{gap:12px;margin-bottom:12px}
+.dpanel{padding:14px 16px 8px}
+.dchart{height:190px}.dchart.small{height:150px}
+.annstack .annb-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.annstack .annb{padding:10px 18px}
+.annstack{margin-bottom:12px}
+
+/* Calendar tooltip: smooth fade, opens downward on the top rows, rows with labels */
+.cal-tip{display:flex!important;opacity:0;visibility:hidden;transform:translateX(-50%) translateY(4px);transition:opacity .14s ease,transform .14s ease,visibility .14s;min-width:200px;white-space:normal;z-index:20}
+.cal-d.tip-l .cal-tip{transform:translateY(4px)}.cal-d.tip-r .cal-tip{transform:translateY(4px)}
+.cal-d:hover .cal-tip,.cal-d:focus-visible .cal-tip{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.cal-d.tip-l:hover .cal-tip,.cal-d.tip-l:focus-visible .cal-tip,.cal-d.tip-r:hover .cal-tip,.cal-d.tip-r:focus-visible .cal-tip{transform:none}
+.cal-d.tip-b .cal-tip{bottom:auto;top:calc(100% + 8px)}
+.cal-tip .cal-row{display:flex;justify-content:space-between;gap:16px}.cal-tip .cal-row i{font-style:normal;color:#cdbd93}
+.cal-tip .cal-st{color:#e8c35e;font-weight:700}.cal-tip .cal-none{color:#cdbd93}
+.cal{overflow:visible}
+
+/* Announcements v2: one list; pinned = same card with a small gold badge and a gold left edge */
+.annstack .annb::before{background:transparent}
+.annstack .annb.pinned::before{background:var(--brand)}
+.annb.pinned{border-color:var(--line);box-shadow:var(--sh)}
+.annb-pin-tag{padding:1px 8px;font-size:.62rem;letter-spacing:.1em;font-weight:800}
+.ann-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ann-count{font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.ann-count b{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:rgba(232,195,94,.25);color:var(--ink);text-align:center}
+.annstack{gap:8px}
+
+/* Payments & Transactions */
+.pay-sum{display:flex;flex-wrap:wrap;gap:6px 22px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:.85rem;color:var(--mut)}
+.pay-sum b{margin-left:6px;color:var(--ink);font-variant-numeric:tabular-nums}.pay-sum b.pos{color:var(--ok)}.pay-sum b.neg{color:var(--err)}
+.pay-sum i{font-style:normal}
+.pay-tw td{vertical-align:middle}
+dl.pay-kv{grid-template-columns:140px 1fr;margin:0 0 14px}
+.annb-btn:focus-visible,.btn:focus-visible,.icon-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+.pay-tw td.nowrap,.pay-tw td .btn{white-space:nowrap}
+
+/* Announcements v3: one card; every announcement is a row inside it, pinned rows get a gold left edge and badge */
+.annstack .annone{align-items:flex-start}
+.annone .ann-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.ann-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ann-item{position:relative;padding:8px 0 8px 14px;border-top:1px solid var(--line)}
+.ann-item:first-child{border-top:0}
+.ann-item::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:transparent}
+.ann-item.pinned::before{background:var(--brand)}
+.ann-item .annb-text{margin:2px 0 0}
+.ann-when{color:var(--mut);font-weight:500;letter-spacing:0;text-transform:none}
+.ann-item .annb-label{letter-spacing:.04em}
+
+
+.ann-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 2px}

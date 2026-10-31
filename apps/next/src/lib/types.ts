@@ -41,7 +41,7 @@ export interface Expense {
 export interface BookingDocument { id: number; booking_id: number; stored: string; original: string; user_id: number | null; at: string }
 
 export interface Attendance {
-  id: number; user_id: number; day: string; time_in: string | null; time_out: string | null; is_late: number; late_min: number;
+  id: number; user_id: number; day: string; time_in: string | null; break_out: string | null; break_in: string | null; time_out: string | null; is_late: number; late_min: number;
 }
 export interface AttendanceCorrection {
   id: number; user_id: number; day: string; old_in: string | null; old_out: string | null; new_in: string | null; new_out: string | null;
@@ -87,4 +87,4 @@ export const ATT_STATUSES = ['Present', 'Late', 'Clocked in', 'Incomplete', 'Abs
 export type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** What a staff member can ask to correct on an attendance day (My Attendance → right-click → Apply for correction). */
-export const CORR_FIELDS: [string, string][] = [['time_in', 'Time in'], ['time_out', 'Time out'], ['status', 'Status']];
+export const CORR_FIELDS: [string, string][] = [['time_in', 'Time in'], ['break_out', 'Break out'], ['break_in', 'Break in'], ['time_out', 'Time out'], ['status', 'Status']];

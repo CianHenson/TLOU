@@ -4,7 +4,7 @@
 // or, for the owner, deletes the selection.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { peso } from '@/lib/util';
+import { hm12, peso } from '@/lib/util';
 import type { Row } from '@/lib/types';
 import { useFlash } from './flash';
 import { FootLine } from './ui';
@@ -79,7 +79,7 @@ export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: bool
                   <Line k="Contact number" v={r.contact || '—'} /><Line k="Email / Facebook" v={r.email_fb || '—'} />
                   {r.remarks && <Line k="Remarks" v={r.remarks} />}</>} />
               : '—'}</td>
-            <td>{r.origin} → {r.destination}</td><td className="nowrap">{r.travel_date}{r.travel_time ? <div className="small">{r.travel_time}</div> : null}</td>
+            <td>{r.origin} → {r.destination}</td><td className="nowrap">{r.travel_date}{r.travel_time ? <div className="small">{hm12(r.travel_time)}</div> : null}</td>
             <td><span className={`badge ${CLS[r.checkin_status] ?? ''}`}>{r.checkin_status}</span></td><td className="nowrap">{r.flight_no}</td>
             <td className="num"><Peek label={peso(r.total_amount)} panel={<>
               <Line k="Total amount" v={peso(r.total_amount)} /><Line k="Service charge" v={peso(r.service_charge)} />

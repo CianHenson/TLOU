@@ -10,7 +10,7 @@ export const NEW_SALE_EVT = 'sale:new';
  * Gold "+" header button that opens the New airfare sale form in a modal (<dialog>, top layer). On save the dialog
  * closes, the list refreshes and the form is remounted empty for the next sale.
  */
-export function NewSaleButton({ today }: { today: string }) {
+export function NewSaleButton({ today, airlines }: { today: string; airlines: string[] }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [k, setK] = useState(0);
   const close = () => dlg.current?.close();
@@ -31,7 +31,7 @@ export function NewSaleButton({ today }: { today: string }) {
           <button type="button" className="modal-x" aria-label="Close" onClick={close}>×</button>
         </div>
         <div className="modal-body">
-          <AirfareForm key={k} today={today} a={{ txn_date: today, pax: 1, checkin_status: 'Pending' }}
+          <AirfareForm key={k} today={today} airlines={airlines} a={{ txn_date: today, pax: 1, checkin_status: 'Pending' }}
             onCancel={close} onDone={() => { close(); setK((n) => n + 1); }} />
         </div>
       </dialog>

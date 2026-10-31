@@ -4,6 +4,7 @@
 // `SUBSTR(col,1,10) BETWEEN ? AND ?` style reporting queries work unchanged.
 import { hashPassword } from './password';
 import { now } from './util';
+import { AIRLINES } from './types';
 import type { Db } from './db';
 import crypto from 'node:crypto';
 
@@ -108,6 +109,27 @@ const TABLES = [
     id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, day CHAR(10) NOT NULL, changes TEXT NOT NULL, reason TEXT NOT NULL,
     status VARCHAR(10) NOT NULL DEFAULT 'Pending', decline_reason TEXT NULL, created_at VARCHAR(19) NOT NULL, reviewed_by INT NULL, reviewed_at VARCHAR(19) NULL,
     FOREIGN KEY (user_id) REFERENCES users(id))`,
+  // Airline master list (Airlines page). Airfare sales keep the airline NAME as text, so renaming or deactivating an airline never changes old sales.
+  `CREATE TABLE IF NOT EXISTS airlines (
+    id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(80) NOT NULL, code VARCHAR(8) NULL, active TINYINT NOT NULL DEFAULT 1,
+    created_by INT NULL, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NULL, UNIQUE KEY uq_airline_name (name))`,
+  // Dashboard announcements, one row per post. At most two are pinned at a time (enforced in /api/announcement). Removed posts keep their row (deleted_at).
+  `CREATE TABLE IF NOT EXISTS announcement_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY, body TEXT NOT NULL, user_id INT NULL, user_name VARCHAR(120), created_at VARCHAR(19) NOT NULL,
+    updated_at VARCHAR(19) NULL, pinned TINYINT NOT NULL DEFAULT 0, pinned_at VARCHAR(19) NULL, deleted_at VARCHAR(19) NULL, INDEX ix_annp (deleted_at, pinned))`,
+  // Payroll deductions set up by the owner / admin. kind and basis leave room for fixed amounts and other calculation bases later.
+  // Rates live in deduction_rates (one row per change, with the date it takes effect), so history is kept and old payroll never changes.
+  `CREATE TABLE IF NOT EXISTS deductions (
+    id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(80) NOT NULL, kind VARCHAR(10) NOT NULL DEFAULT 'percent', basis VARCHAR(20) NOT NULL DEFAULT 'gross',
+    created_by INT NULL, created_at VARCHAR(19) NOT NULL, UNIQUE KEY uq_ded_name (name))`,
+  `CREATE TABLE IF NOT EXISTS deduction_rates (
+    id INT AUTO_INCREMENT PRIMARY KEY, deduction_id INT NOT NULL, rate_bp INT NOT NULL, active TINYINT NOT NULL DEFAULT 1, effective_from CHAR(10) NOT NULL,
+    changed_by INT NULL, changed_at VARCHAR(19) NOT NULL, INDEX ix_dr (deduction_id, effective_from),
+    CONSTRAINT ck_dr_rate CHECK (rate_bp > 0 AND rate_bp <= 10000), FOREIGN KEY (deduction_id) REFERENCES deductions(id))`,
+  // The deductions applied to one generated payroll record: a frozen copy (name, rate, basis amount, peso amount in centavos).
+  `CREATE TABLE IF NOT EXISTS payroll_deductions (
+    id INT AUTO_INCREMENT PRIMARY KEY, payroll_id INT NOT NULL, deduction_id INT NULL, name VARCHAR(80) NOT NULL, kind VARCHAR(10) NOT NULL DEFAULT 'percent',
+    rate_bp INT NOT NULL, basis_amount BIGINT NOT NULL, amount BIGINT NOT NULL, INDEX ix_pd (payroll_id), FOREIGN KEY (payroll_id) REFERENCES payroll(id) ON DELETE CASCADE)`,
 ];
 
 const DEFAULT_SETTINGS:Record<string, string> = {
@@ -164,6 +186,25 @@ export async function ensureSchema(d: Db) {
   }
   if (!(await hasCol('announcements', 'pinned'))) await d.run('ALTER TABLE announcements ADD COLUMN pinned TINYINT NOT NULL DEFAULT 0');
   if (!(await hasCol('leaves', 'request_id'))) await d.run('ALTER TABLE leaves ADD COLUMN request_id INT NULL');
+  // Break workflow (Time In -> Break Out -> Break In -> Time Out).
+  if (!(await hasCol('attendance', 'break_out'))) await d.run('ALTER TABLE attendance ADD COLUMN break_out VARCHAR(19) NULL AFTER time_in, ADD COLUMN break_in VARCHAR(19) NULL AFTER break_out');
+  // Payroll now has deductions: gross = basic + adjustments, net = gross - total deductions (older rows keep NULL = no deductions).
+  if (!(await hasCol('payroll', 'gross_pay'))) await d.run('ALTER TABLE payroll ADD COLUMN gross_pay BIGINT NULL AFTER adjustment_note, ADD COLUMN total_deductions BIGINT NOT NULL DEFAULT 0 AFTER gross_pay');
+  // Every Staff account must be an employee record to clock in; accounts created through User Management used to miss it.
+  await d.run(`INSERT IGNORE INTO employees (user_id,hourly_rate,active,created_at) SELECT id,0,1,? FROM users WHERE role='employee' AND id NOT IN (SELECT user_id FROM employees)`, [now()]);
+  // Airlines: seed from the standard list plus anything already used in airfare sales.
+  if (!(await d.val('SELECT COUNT(*) FROM airlines'))) {
+    const used = await d.all<{ airline: string }>(`SELECT DISTINCT airline FROM airfare_sales WHERE airline<>''`);
+    for (const a of [...new Set([...AIRLINES, ...used.map((r) => r.airline)])]) await d.run('INSERT IGNORE INTO airlines (name,active,created_at) VALUES (?,1,?)', [a, now()]);
+  }
+  // Announcements: carry the current pinned / regular announcement over into the per-post table once.
+  if (!(await d.val("SELECT COUNT(*) FROM settings WHERE k='_announcement_posts_migrated'"))) {
+    for (const pinned of [0, 1]) {
+      const r = await d.get('SELECT body,user_id,user_name,at FROM announcements WHERE pinned=? ORDER BY id DESC LIMIT 1', [pinned]);
+      if (r && r.body) await d.run('INSERT INTO announcement_posts (body,user_id,user_name,created_at,pinned,pinned_at) VALUES (?,?,?,?,?,?)', [r.body, r.user_id, r.user_name, r.at, pinned, pinned ? r.at : null]);
+    }
+    await d.run("INSERT INTO settings (k,v) VALUES ('_announcement_posts_migrated','1')");
+  }
   // First run with the employees table: every existing Staff account becomes an employee (rate 0, to be set by the owner),
   // so attendance monitoring keeps covering the people it covered before.
   if (!(await d.val("SELECT COUNT(*) FROM settings WHERE k='_employees_seeded'"))) {

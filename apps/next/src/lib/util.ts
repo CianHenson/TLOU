@@ -53,5 +53,25 @@ export const csvCell = (v: unknown) => {
 export const toCsv = (head: unknown[], rows: unknown[][]) => '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
 /** 2026-10-26 -> October 26, 2026 */
 export const longDate = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-/** "06:01 PM" from a stored "YYYY-MM-DD HH:mm[:ss]" timestamp. */
-export const time12 = (dt: string) => { const h = +dt.slice(11, 13); return `${String(h % 12 || 12).padStart(2, '0')}:${dt.slice(14, 16)} ${h < 12 ? 'AM' : 'PM'}`; };
+/**
+ * Display-only 12-hour time ("2:30 PM") from a stored 'HH:mm' time or 'YYYY-MM-DD HH:mm[:ss]' timestamp; '' when empty.
+ * Stored values stay 24-hour so sorting and calculations are unaffected.
+ */
+export const hm12 = (v: string | null | undefined) => {
+  if (!v) return '';
+  const t = v.length > 5 ? v.slice(11, 16) : v.slice(0, 5);
+  if (!/^\d{2}:\d{2}$/.test(t)) return '';
+  const h = +t.slice(0, 2);
+  return `${h % 12 || 12}:${t.slice(3, 5)} ${h < 12 ? 'AM' : 'PM'}`;
+};
+export const time12 = hm12;
+/** "2026-10-31 3:55 PM" from a stored timestamp (date + 12-hour time). */
+export const dt12 = (s: string | null | undefined) => (s ? `${s.slice(0, 10)} ${hm12(s)}`.trim() : '');
+/** Accepts "8:30 AM", "8:30pm" or "08:30" (CSV uploads) and returns 'HH:mm' (24 h, as stored), or '' when it is not a time. */
+export const to24h = (s: string) => {
+  const m = /^(\d{1,2}):(\d{2})\s*([ap]m)?$/i.exec(String(s ?? '').trim());
+  if (!m) return '';
+  let h = +m[1];
+  if (m[3]) { if (h < 1 || h > 12) return ''; h = (h % 12) + (m[3].toLowerCase() === 'pm' ? 12 : 0); }
+  return h > 23 || +m[2] > 59 ? '' : `${String(h).padStart(2, '0')}:${m[2]}`;
+};

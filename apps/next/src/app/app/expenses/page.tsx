@@ -1,71 +1,54 @@
 import { requireUser, isOwner } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { EXPENSE_CATS, METHODS } from '@/lib/biz';
+import { EXPENSE_CATS } from '@/lib/biz';
 import { flat, paginate } from '@/lib/list';
-import { peso, today } from '@/lib/util';
-import { FootLine, Page, Pager } from '@/components/ui';
-import { ApiForm, Field, Submit } from '@/components/form';
-import { ExportLink } from '@/components/widgets';
-import { ReceiptLink, ReceiptPanel } from '@/components/receipt-viewer';
-import { expenseQuery } from '@/lib/queries/expenses';
-import { rowMenu } from '@/lib/menu';
-import { RowMenus } from '@/components/context-menu';
+import { longDate, intOrNull, today } from '@/lib/util';
+import { expenseCats, expenseQuery } from '@/lib/queries/expenses';
+import { Page, Pager } from '@/components/ui';
+import { DateRangeFilter, TableFilters } from '@/components/list-filters';
+import { ExpenseModalButton } from '@/components/expense-modal';
+import { ExpensesTable, type ExpenseRow } from '@/components/expenses-table';
+import { ReceiptPanel } from '@/components/receipt-viewer';
+import { BatchUploadButton } from '@/components/batch-upload';
+import { EXPENSE_COLS } from '@/lib/batch-cols';
 
 export const metadata = { title: 'Expenses' };
 
+// One Expenses page for the owner / admin (every staff member's expenses) and for staff (only their own). Same header, filters,
+// table and Add Expense dialog on both sides; the list query itself enforces who sees what.
 export default async function Expenses(props: PageProps<'/app/expenses'>) {
   const me = await requireUser('expenses');
   const q = flat(await props.searchParams);
-  const [sql, p] = expenseQuery(q);
-  const [list, total] = await Promise.all([
-    paginate(q, sql, p),
-    db.val(`SELECT COALESCE(SUM(x.amount),0) FROM (${sql}) AS x WHERE x.status='Valid'`, p),
-  ]);
   const owner = isOwner(me), td = today();
-  const active = [EXPENSE_CATS.includes(q.category) && `category: ${q.category}`, (q.from || q.to) && `dates ${q.from || 'start'} to ${q.to || 'today'}`, q.q && `search "${q.q}"`].filter(Boolean);
+  const [sql, p] = expenseQuery(q, me);
+  const [list, sums, recorders] = await Promise.all([
+    paginate(q, sql, p, 25),
+    db.get(`SELECT COUNT(*) AS n, COALESCE(SUM(x.amount),0) AS total FROM (${sql}) AS x`, p),
+    owner ? db.all<{ id: number; name: string }>(`SELECT DISTINCT u.id, u.name FROM expenses e JOIN users u ON u.id=e.user_id WHERE e.status='Valid' ORDER BY u.name`) : Promise.resolve([]),
+  ]);
+  const rows: ExpenseRow[] = list.rows.map((r) => ({
+    id: r.id, date: r.spent_at, type: r.category, description: r.description || '', method: r.method || '', amount: Number(r.amount),
+    by: r.recorder || '', userId: r.user_id, receipt: r.receipt || '', receiptName: r.receipt_name || r.receipt || '',
+  }));
+  const cats = expenseCats(q), uid = owner ? intOrNull(q.uid) : null;
+  const qs = new URLSearchParams(Object.entries({ q: q.q, category: cats.join(','), from: q.from, to: q.to, uid: uid ? String(uid) : '' }).filter(([, v]) => v) as [string, string][]).toString();
+  const active = [(q.from || q.to) && `dates ${q.from ? longDate(q.from) : 'start'} to ${q.to ? longDate(q.to) : 'today'}`, cats.length && `types: ${cats.join(', ')}`,
+    uid && `recorded by: ${recorders.find((r) => r.id === uid)?.name ?? uid}`, q.q && `search "${q.q}"`].filter(Boolean);
   const note = active.length ? `Filters are active (${active.join(', ')}). Only the filtered expenses will be exported.` : undefined;
   return (
-    <Page title="Expenses" filters={
-      <form className="filters" method="get" key={list.qs}>
-          <div className="grow"><label>Search</label><input name="q" defaultValue={q.q || ''} /></div>
-          <div><label>Category</label><select name="category" defaultValue={q.category || ''}><option value="">All</option>{EXPENSE_CATS.map((c) => <option key={c}>{c}</option>)}</select></div>
-          <div><label>From</label><input type="date" name="from" defaultValue={q.from || ''} /></div><div><label>To</label><input type="date" name="to" defaultValue={q.to || ''} /></div>
-          <div className="btnrow"><button className="btn">Filter</button><ExportLink href={`/api/expenses/export?${list.qs}`} note={note}>Export CSV</ExportLink></div>
-        </form>
+    <Page title="Expenses" actions={<><BatchUploadButton title="Batch upload expenses" action="/api/expenses/batch" cols={EXPENSE_COLS} template="expenses-template.csv" /><ExpenseModalButton today={td} /></>} filters={
+      <div className="af-bar"><DateRangeFilter today={td} showBy={false}
+        initial={{ by: 'txn', from: q.from || '', to: q.to || '', range: q.range || (q.from || q.to ? 'custom' : '') }} /></div>
     }>
-      <ApiForm action="/api/expenses" reset className="card">
-        <h3>Record an expense</h3>
-        <div className="grid g4">
-          <Field name="spent_at" label="Date *" type="date" defaultValue={td} attrs={{ max: td, required: true }} />
-          <Field name="category" label="Category *" type="select" options={EXPENSE_CATS} emptyLabel={null} attrs={{ required: true }} />
-          <Field name="amount" label="Amount (₱) *" type="number" attrs={{ step: '0.01', min: 0.01, required: true }} />
-          <Field name="method" label="Payment method *" type="select" options={METHODS} emptyLabel={null} attrs={{ required: true }} />
-        </div>
-        <div className="grid g2">
-          <Field name="description" label="Description *" attrs={{ maxLength: 500, required: true }} />
-          <div className="field"><label htmlFor="f-receipt">Receipt (PDF/JPG/PNG, max 5 MB)</label><input id="f-receipt" type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" /></div>
-        </div>
-        <Submit>Save expense</Submit>
-      </ApiForm>
-      <div className="tw-card"><RowMenus className="tw tw-fixed tw-fm"><table><colgroup><col /><col /><col style={{ width: '24%' }} /><col /><col /><col /><col /><col style={{ width: '20%' }} /></colgroup><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Method</th><th className="num">Amount</th><th>By</th><th>Receipt</th><th></th></tr></thead><tbody>
-        {list.rows.map((e) => (
-          <tr key={e.id} className={e.status === 'Voided' ? 'off' : ''} {...rowMenu([
-            e.receipt && { label: 'View receipt', event: 'receipt:open', detail: { id: e.id, label: e.receipt, kind: String(e.receipt).toLowerCase().endsWith('.pdf') ? 'pdf' : 'img' } },
-            owner && e.status === 'Valid' && { label: 'Void expense', reason: `/api/expenses/${e.id}/void`, title: `Void expense — ${e.description}`, danger: true }])}><td className="nowrap">{e.spent_at}</td><td>{e.category}</td><td>{e.description}{e.status === 'Voided' ? ' — VOIDED: ' + e.void_reason : ''}</td><td>{e.method}</td><td className="num">{peso(e.amount)}</td><td>{e.recorder}</td>
-            <td>{e.receipt && <ReceiptLink id={e.id} label={e.receipt} kind={String(e.receipt).toLowerCase().endsWith('.pdf') ? 'pdf' : 'img'} />}</td>
-            <td>{owner && e.status === 'Valid' && (
-              <ApiForm action={`/api/expenses/${e.id}/void`} className="row">
-                <input name="reason" placeholder="Reason" required style={{ width: 110 }} />
-                <Submit className="btn danger sm" confirm="Void this expense?">Void</Submit>
-              </ApiForm>
-            )}</td></tr>
-        ))}
-        {!list.rows.length && <tr><td colSpan={8} className="empty">No expenses recorded.</td></tr>}
-        {!!list.rows.length && <tr className="fill"><td colSpan={8} /></tr>}
-      </tbody>
-      {!!list.rows.length && <FootLine cols={8} total={list.total} right={`Total (valid): ${peso(total)}`} />}
-      </table></RowMenus>
-      {list.pages > 1 && <div className="tw-foot"><Pager list={list} /></div>}</div>
+      <div className="tw-card">
+        <TableFilters q={q.q || ''} placeholder="Search description, type or payment method" exportHref={`/api/expenses/export?${qs}`}
+          exportTitle="Export the filtered expenses as CSV" exportNote={note} dropdowns={[
+            { key: 'category', label: 'Type of expense', value: cats.join(','), options: [['', 'All types of expense'], ...EXPENSE_CATS], multiple: true, noun: 'types' },
+            ...(owner ? [{ key: 'uid', label: 'Recorded by', value: uid ? String(uid) : '', options: [['', 'All staff'], ...recorders.map((r): [string, string] => [String(r.id), r.name])] as [string, string][] }] : []),
+          ]} />
+        <ExpensesTable rows={rows} total={Number(sums?.total ?? 0)} count={Number(sums?.n ?? 0)} today={td} owner={owner} meId={me.id} />
+        {list.pages > 1 && <div className="tw-foot"><Pager list={list} /></div>}
+      </div>
       <ReceiptPanel />
     </Page>
   );

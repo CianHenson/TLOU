@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ApiForm, Field, Submit } from './form';
+import { ApiForm, Field, Submit, useFormState } from './form';
 import { Dropdown } from './dropdown';
 import { DateField, TimeField } from './date-time-picker';
 import { digitsOnly, moneyInput, titleCase, withCommas, type InputEv } from './input-format';
-import { AIRLINES, CHECKIN_STATUSES } from '@/lib/types';
+import { CHECKIN_STATUSES } from '@/lib/types';
 
 export interface AirfareValues {
   id?: number; txn_date: string; airline?: string; pnr?: string; pax: number; passenger?: string; contact?: string; email_fb?: string; origin?: string; destination?: string;
@@ -16,10 +16,28 @@ const peso = (n: number) => '₱' + n.toLocaleString('en-PH', { minimumFractionD
 const num = (s: string) => { const n = Number(s.replace(/[₱,\s]/g, '')); return Number.isFinite(n) ? n : 0; };
 
 /**
+ * Airline dropdown fed by the Airlines page. A sale that already has an airline keeps it as an option even if that airline was
+ * later deactivated or renamed, so editing an old sale never silently changes its airline.
+ */
+function AirlineSelect({ name, options, current }: { name: string; options: string[]; current?: string }) {
+  const { errors } = useFormState();
+  const list = current && !options.includes(current) ? [current, ...options] : options;
+  return (
+    <div className={`field ${errors[name] ? 'has-err' : ''}`}>
+      <label>Airline name *</label>
+      {list.length
+        ? <Dropdown name={name} ariaLabel="Airline" options={[['', '— Select airline —'], ...list]} defaultValue={current ?? ''} style={{ width: '100%' }} />
+        : <div className="small muted">No active airlines yet. Ask the owner to add one on the Airlines page.</div>}
+      {errors[name] && <div className="err" role="alert">{errors[name]}</div>}
+    </div>
+  );
+}
+
+/**
  * Create / edit form for one airfare sale; shows the airline fare and agency income live as the amounts are typed.
  * As a page it goes back to the list when saved; inside a modal pass `onDone` / `onCancel` and it stays on the page.
  */
-export function AirfareForm({ a, today, onDone, onCancel }: { a: AirfareValues; today: string; onDone?: () => void; onCancel?: () => void }) {
+export function AirfareForm({ a, today, airlines, onDone, onCancel }: { a: AirfareValues; today: string; /** Active airlines from the Airlines page. */ airlines: string[]; onDone?: () => void; onCancel?: () => void }) {
   const inModal = !!onCancel;
   const isNew = !a.id;
   const [amt, setAmt] = useState({ total: withCommas(a.total_amount ?? ''), sc: withCommas(a.service_charge ?? ''), fee: withCommas(a.card_fee ?? '') });
@@ -32,11 +50,10 @@ export function AirfareForm({ a, today, onDone, onCancel }: { a: AirfareValues; 
       <h3>Booking</h3>
       <div className="grid g4">
         <DateField name="txn_date" label="Transaction date *" defaultValue={a.txn_date} max={today} today={today} required />
-        <Field name="airline" label="Airline name *" defaultValue={a.airline} attrs={{ required: true, maxLength: 80, list: 'airlines' }} />
+        <AirlineSelect name="airline" options={airlines} current={a.airline} />
         <Field name="pnr" label="Airline PNR *" defaultValue={a.pnr} attrs={{ required: true, maxLength: 8, style: { textTransform: 'uppercase' } }} />
         <Field name="flight_no" label="Airline ID / flight no." defaultValue={a.flight_no} attrs={{ maxLength: 40, style: { textTransform: 'uppercase' } }} />
       </div>
-      <datalist id="airlines">{AIRLINES.map((x) => <option key={x} value={x} />)}</datalist>
       {isNew && <label className="small" style={{ display: 'block', marginTop: -6, marginBottom: 12 }}><input type="checkbox" name="dup_ok" /> Save even if this PNR is already recorded</label>}
 
       <h3>Passenger</h3>

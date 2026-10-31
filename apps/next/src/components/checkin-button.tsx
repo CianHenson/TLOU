@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { ApiForm, Submit } from './form';
 import { Dropdown } from './dropdown';
 import { CHECKIN_STATUSES, type Row } from '@/lib/types';
+import { hm12 } from '@/lib/util';
 
 const fmtDate = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
@@ -28,7 +29,7 @@ export function CheckinButton({ rows }: { rows: Row[] }) {
           {!rows.length && <p className="muted" style={{ margin: 0 }}>No pending check-ins in the next 48 hours.</p>}
           {!!rows.length && <div className="tw"><table><thead><tr><th>Flight</th><th>Passenger</th><th>Route</th><th>PNR</th><th>Contact</th><th>Check-in</th></tr></thead><tbody>
             {rows.map((r) => (
-              <tr key={r.id}><td className="nowrap"><strong>{fmtDate(r.travel_date)} {r.travel_time || ''}</strong><div className="small muted">{r.airline} {r.flight_no}</div></td>
+              <tr key={r.id}><td className="nowrap"><strong>{fmtDate(r.travel_date)} {hm12(r.travel_time)}</strong><div className="small muted">{r.airline} {r.flight_no}</div></td>
                 <td>{r.passenger}<div className="small muted">{r.pax} pax</div></td><td>{r.origin} → {r.destination}</td><td>{r.pnr}</td><td>{r.contact}</td>
                 <td><ApiForm action={`/api/airfare/${r.id}/status`} className="row" style={{ flexWrap: 'nowrap' }}>
                   <Dropdown name="status" ariaLabel="Check-in status" defaultValue={r.checkin_status} options={CHECKIN_STATUSES} className="sm" style={{ width: 130 }} />

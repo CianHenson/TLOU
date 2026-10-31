@@ -13,6 +13,8 @@ import { RequestsButton } from '@/components/att-requests';
 import { CorrectionsButton } from '@/components/att-corrections';
 import { GeneratePayrollButton, PayrollTable } from '@/components/att-payroll';
 import { SectionSelect } from '@/components/att-section';
+import { activeDeductionsOn } from '@/lib/queries/deductions';
+import { pct } from '@/lib/deduction-shared';
 
 export const metadata = { title: 'Attendance Monitoring & Payroll' };
 
@@ -75,10 +77,15 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
     const from = U.isDate(q.from) ? q.from : '', to = U.isDate(q.to) ? q.to : '';
     const search = U.str(q.q, 60).toLowerCase();
     const rows = (await payrollList({ uid, from, to })).filter((x) => !search || String(x.name).toLowerCase().includes(search));
-    actions = <GeneratePayrollButton employees={staff} today={td} />;
+    const deds = await activeDeductionsOn(td);
+    actions = <GeneratePayrollButton employees={staff} today={td} deductions={deds} />;
     filters = <div className="af-bar"><DateRangeFilter today={td} showBy={false} initial={{ by: 'txn', from, to, range: q.range || (from || to ? 'custom' : '') }} /></div>;
     body = (
       <>
+        <div className="ded-strip" aria-label="Active deductions">
+          <strong>Active deductions:</strong>{' '}
+          {deds.length ? deds.map((d) => <span key={d.id} className="badge">{d.name} – {pct(d.rate_bp)}</span>) : <span className="muted">none (set them up under Payroll Deductions)</span>}
+        </div>
         <div className="tw-card">
           <TableFilters lead={<SectionSelect value="payroll" />} q={q.q || ''} placeholder="Search employee name" dropdowns={[{ key: 'uid', label: 'Employee', value: uid ? String(uid) : '', options: empOpts }]} />
           <PayrollTable rows={rows} />

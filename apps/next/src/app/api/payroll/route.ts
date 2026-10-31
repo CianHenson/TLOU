@@ -1,10 +1,12 @@
 import { api, ok, fail, invalid, form, clientIp } from '@/lib/http';
 import { apiUser } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { db, tx } from '@/lib/db';
 import { audit } from '@/lib/biz';
 import { PAY_PERIODS } from '@/lib/types';
 import { addDays, isDate, now, peso, str, today, toCents } from '@/lib/util';
 import { basicPay, payPeriod, workSummary } from '@/lib/queries/payroll';
+import { applyDeductions, pct } from '@/lib/deduction-shared';
+import { activeDeductionsOn } from '@/lib/queries/deductions';
 
 /**
  * Owner / admin: generate a payroll record for one active employee and period from their attendance. Working days and
@@ -39,10 +41,18 @@ export const POST = api(async (req) => {
   if (clash) return fail(`${emp!.name} already has payroll for ${clash.period_from} to ${clash.period_to}. Delete it first to regenerate.`);
 
   const s = await workSummary({ ...emp!, id: emp!.uid }, from, to);
-  const basic = basicPay(s.minutes, emp!.hourly_rate), net = basic + adj;
-  if (net < 0) return invalid({ adjustments: 'Deductions cannot be more than the basic pay.' });
-  const { id } = await db.run(`INSERT INTO payroll (employee_id,user_id,period_kind,period_from,period_to,days,minutes,incomplete,hourly_rate,basic_pay,adjustments,adjustment_note,net_pay,created_by,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [emp!.id, emp!.uid, kind, from, to, s.days, s.minutes, s.incomplete, emp!.hourly_rate, basic, adj, note || null, net, user.id, now()]);
-  await audit({ user, ip: clientIp(req) }, 'payroll.generate', 'payroll', id, { employee: emp!.uid, from, to, days: s.days, minutes: s.minutes, rate: emp!.hourly_rate, net });
-  return ok(`Payroll generated for ${emp!.name}: ${peso(net)}${s.incomplete ? ` (${s.incomplete} incomplete day${s.incomplete === 1 ? '' : 's'} not paid)` : ''}.`, { id });
+  // Gross salary = basic pay + adjustment. Every ACTIVE deduction in force at the end of the period is applied to the gross
+  // (amount = gross x percentage / 100) and saved as its own line, so the payslip never changes if the configuration does.
+  const basic = basicPay(s.minutes, emp!.hourly_rate), gross = basic + adj;
+  const { lines, total: totalDed } = applyDeductions(gross, await activeDeductionsOn(to));
+  const net = gross - totalDed;
+  if (gross < 0 || net < 0) return invalid({ adjustments: 'Deductions cannot be more than the basic pay.' });
+  const id = await tx(async (t) => {
+    const pid = (await t.run(`INSERT INTO payroll (employee_id,user_id,period_kind,period_from,period_to,days,minutes,incomplete,hourly_rate,basic_pay,adjustments,adjustment_note,gross_pay,total_deductions,net_pay,created_by,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [emp!.id, emp!.uid, kind, from, to, s.days, s.minutes, s.incomplete, emp!.hourly_rate, basic, adj, note || null, gross, totalDed, net, user.id, now()])).id;
+    for (const l of lines) await t.run('INSERT INTO payroll_deductions (payroll_id,deduction_id,name,kind,rate_bp,basis_amount,amount) VALUES (?,?,?,?,?,?,?)', [pid, l.id, l.name, l.kind, l.rate_bp, l.basis_amount, l.amount]);
+    return pid;
+  });
+  await audit({ user, ip: clientIp(req) }, 'payroll.generate', 'payroll', id, { employee: emp!.uid, from, to, days: s.days, minutes: s.minutes, rate: emp!.hourly_rate, gross, deductions: lines.map((l) => `${l.name} ${pct(l.rate_bp)}=${l.amount}`), net });
+  return ok(`Payroll generated for ${emp!.name}: ${peso(net)} net${totalDed ? ` (after ${peso(totalDed)} deductions)` : ''}${s.incomplete ? ` (${s.incomplete} incomplete day${s.incomplete === 1 ? '' : 's'} not paid)` : ''}.`, { id });
 });

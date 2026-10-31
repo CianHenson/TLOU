@@ -11,6 +11,7 @@ import { DateRangeField } from './date-time-picker';
 import { useRowSelection } from './row-select';
 import { Modal, PlusButton, usePost } from './modal';
 import { FootLine } from './ui';
+import { pct } from '@/lib/deduction-shared';
 
 const add = (d: string, n: number) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 /** Same rules as the server's payPeriod(). */
@@ -26,7 +27,7 @@ const span = (a: string, b: string) => (a === b ? longDate(a) : `${longDate(a)} 
 const GENERATE_EVT = 'payroll:new';
 
 /** "+" header button: generate payroll for one employee and period. Also opens from the table's empty-space menu. */
-export function GeneratePayrollButton({ employees, today }: { employees: Row[]; today: string }) {
+export function GeneratePayrollButton({ employees, today, deductions }: { employees: Row[]; today: string; deductions: { id: number; name: string; rate_bp: number }[] }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const on = () => setOpen(true);
@@ -60,7 +61,13 @@ export function GeneratePayrollButton({ employees, today }: { employees: Row[]; 
                 <Field name="adjustments" label="Adjustment (₱, optional)" attrs={{ inputMode: 'decimal', placeholder: '0.00' }} hint="Positive adds (e.g. allowance), negative deducts (e.g. -250 cash advance)." />
                 <Field name="adjustment_note" label="Adjustment note" attrs={{ maxLength: 200, placeholder: 'e.g. Cash advance' }} />
               </div>
-              <p className="small muted">Pay = hours from complete time-in/out records in the period × the employee&apos;s hourly rate (+ adjustment). Approved leave, holidays and incomplete days are not paid. The result is saved and does not change if the rate or attendance changes later.</p>
+              <div className="ded-box">
+                <strong>Deductions that will be applied</strong>
+                {deductions.length
+                  ? <ul>{deductions.map((d) => <li key={d.id}>{d.name} – {pct(d.rate_bp)} <span className="muted">of gross salary</span></li>)}</ul>
+                  : <p className="small muted" style={{ margin: '4px 0 0' }}>None. Add deductions under Payroll Deductions and set them Active.</p>}
+              </div>
+              <p className="small muted">Gross = hours from complete time-in/out records in the period × the employee&apos;s hourly rate (+ adjustment); net = gross − the deductions above. Approved leave, holidays and incomplete days are not paid. The result is saved and does not change if the rate or attendance changes later.</p>
               <div className="row"><Submit>Generate payroll</Submit> <button type="button" className="btn ghost" onClick={close}>Cancel</button></div>
             </ApiForm>
           ) : (
@@ -92,25 +99,27 @@ export function PayrollTable({ rows }: { rows: Row[] }) {
   const one = menu && menu.ids.length === 1 ? rows.find((r) => Number(r.id) === menu.ids[0]) : undefined;
   return (
     <div className="tw tw-fixed tw-fm tw-sel" ref={wrap} onContextMenu={emptyMenu}>
-      <table><colgroup><col /><col style={{ width: '22%' }} /></colgroup><thead><tr><th>Employee</th><th>Payroll period</th><th className="num">Working days</th><th className="num">Total hours</th><th className="num">Hourly rate</th>
-        <th className="num">Basic pay</th><th className="num">Adjustments</th><th className="num">Net pay</th></tr></thead>
+      <table><colgroup><col style={{ width: '13%' }} /><col style={{ width: '19%' }} /><col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '9%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /></colgroup><thead><tr><th>Employee</th><th>Payroll period</th><th className="num">Working days</th><th className="num">Total hours</th><th className="num">Hourly rate</th>
+        <th className="num">Basic pay</th><th className="num">Adjustments</th><th className="num">Gross</th><th className="num">Deductions</th><th className="num">Net pay</th></tr></thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.id} {...rowProps(i)} onDoubleClick={() => open(Number(r.id))}>
               <td>{r.name}<div className="small muted">{r.designation || ''}</div></td>
               <td className="nowrap">{span(r.period_from, r.period_to)}<div className="small muted">{r.period_kind} · generated {r.created_at.slice(0, 10)}</div></td>
               <td className="num">{r.days}{r.incomplete ? <div className="small muted">{r.incomplete} incomplete</div> : null}</td>
-              <td className="num">{hrs(r.minutes)}</td><td className="num">{peso(r.hourly_rate)}</td><td className="num">{peso(r.basic_pay)}</td>
+              <td className="num">{hrs(r.minutes)}</td><td className="num nowrap">{peso(r.hourly_rate)}</td><td className="num nowrap">{peso(r.basic_pay)}</td>
               <td className="num" title={r.adjustment_note || undefined}>{r.adjustments ? peso(r.adjustments) : '—'}{r.adjustment_note && <div className="small muted">{r.adjustment_note}</div>}</td>
-              <td className="num"><strong>{peso(r.net_pay)}</strong></td>
+              <td className="num nowrap">{peso(r.gross_pay ?? r.basic_pay + r.adjustments)}</td>
+              <td className="num nowrap">{r.total_deductions ? '− ' + peso(r.total_deductions) : '—'}</td>
+              <td className="num nowrap"><strong>{peso(r.net_pay)}</strong></td>
             </tr>
           ))}
-          {!rows.length && <tr><td colSpan={8} className="empty"><strong>No payroll generated for these filters.</strong><br /><span className="small muted">Click + to generate payroll for an employee and period.</span></td></tr>}
-          {!!rows.length && <tr className="fill"><td colSpan={8} /></tr>}
+          {!rows.length && <tr><td colSpan={10} className="empty"><strong>No payroll generated for these filters.</strong><br /><span className="small muted">Click + to generate payroll for an employee and period.</span></td></tr>}
+          {!!rows.length && <tr className="fill"><td colSpan={10} /></tr>}
         </tbody>
         {!!rows.length && (() => {
           const list = picked.length ? picked : rows;
-          return <FootLine cols={8} total={rows.length} selected={picked.length} right={`Total hours: ${hrs(sum(list, 'minutes'))} · Net pay: ${peso(sum(list, 'net_pay'))}`} />;
+          return <FootLine cols={10} total={rows.length} selected={picked.length} right={`Total hours: ${hrs(sum(list, 'minutes'))} · Net pay: ${peso(sum(list, 'net_pay'))}`} />;
         })()}
       </table>
       {menu && (one || !menu.ids.length) && (

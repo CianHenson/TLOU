@@ -138,11 +138,13 @@ export function DateRangeFilter({ initial, today, showBy = true, allValue = '', 
     setDraft({ from, to });
     go({ ...v, range: key, from, to });
   };
-  const applyCustom = () => {
-    if (!draft.from || !draft.to) return setErr('Choose both dates.');
-    if (draft.from > draft.to) return setErr('From must be on or before To.');
-    setErr(''); setOpen(false);
-    go({ ...v, ...draft, range: 'custom' });
+  // A custom range applies as soon as both dates are picked (no Apply button): the page refreshes with the matching records.
+  const changeDraft = (next: { from: string; to: string }) => {
+    setDraft(next); setErr('');
+    if (!next.from || !next.to || next.from.slice(0, 4) < '1990' || next.to.slice(0, 4) < '1990') return;
+    if (next.from > next.to) return setErr('From must be on or before To.');
+    setOpen(false);
+    go({ ...v, ...next, range: 'custom' });
   };
   const label = v.range === 'custom'
     ? (v.from && v.to ? (v.from === v.to ? short(v.from) : `${short(v.from)} – ${short(v.to)}`) : 'Custom range')
@@ -171,11 +173,10 @@ export function DateRangeFilter({ initial, today, showBy = true, allValue = '', 
               <div className="af-custom" role="group" aria-label="Custom date range">
                 <div className="af-custom-title">Custom date range</div>
                 <label>From<span className="af-cal"><Icon d={CAL} /><input type="date" value={draft.from} max={draft.to || undefined} onFocus={() => setCustom(true)}
-                  onChange={(e) => { setErr(''); setDraft({ ...draft, from: e.target.value }); }} /></span></label>
+                  onChange={(e) => changeDraft({ ...draft, from: e.target.value })} /></span></label>
                 <label>To<span className="af-cal"><Icon d={CAL} /><input type="date" value={draft.to} min={draft.from || undefined} onFocus={() => setCustom(true)}
-                  onChange={(e) => { setErr(''); setDraft({ ...draft, to: e.target.value }); }} /></span></label>
-                {err && <p className="af-err" role="alert">{err}</p>}
-                <button type="button" className="btn af-apply" onClick={applyCustom}>Apply</button>
+                  onChange={(e) => changeDraft({ ...draft, to: e.target.value })} /></span></label>
+                {err ? <p className="af-err" role="alert">{err}</p> : <p className="af-hint">Results update as soon as both dates are chosen.</p>}
               </div>
             )}
           </div>

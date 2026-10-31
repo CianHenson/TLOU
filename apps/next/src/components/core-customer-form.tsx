@@ -5,7 +5,7 @@ import { CONTACT_METHODS } from '@/lib/types';
 
 export function CustomerForm({ c }: { c?: { id: number; name: string; phone: string; email: string; pref_contact: string; notes: string } }) {
   return (
-    <ApiForm action={c ? `/api/customers/${c.id}` : '/api/customers'} className="card" style={{ maxWidth: 640 }}>
+    <ApiForm action={c ? `/api/customers/${c.id}` : '/api/customers'} redirect={c ? `/app/customers/${c.id}` : '/app/customers'} className="card" style={{ maxWidth: 640 }}>
       <Field name="name" label="Full name *" defaultValue={c?.name} attrs={{ required: true, maxLength: 120 }} />
       <div className="grid g2">
         <Field name="phone" label="Contact number" defaultValue={c?.phone} attrs={{ maxLength: 40 }} />

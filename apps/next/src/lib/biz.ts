@@ -103,15 +103,29 @@ export function lateInfo(u: Row, timeIn: string) {
   return over > s.grace ? { is_late: 1, late_min: over } : { is_late: 0, late_min: 0 };
 }
 
-/** Worked minutes; unpaid break is deducted only when the shift spans longer than the break + 1h. */
+/**
+ * Worked minutes. The break is unpaid: the recorded break (break-out to break-in) is deducted. Older records with no recorded
+ * break keep the previous rule: the scheduled break is deducted only when the shift spans longer than the break + 1h.
+ */
 export function workedMin(u: Row, r: Row | null | undefined) {
   if (!r || !r.time_in || !r.time_out) return 0;
   const span = U.diffMin(r.time_in, r.time_out);
   if (span <= 0) return 0;
+  if (r.break_out && r.break_in) return Math.max(0, span - Math.max(0, U.diffMin(r.break_out, r.break_in)));
   return Math.max(0, span - (span > u.break_min + 60 ? u.break_min : 0));
 }
 
-export interface DayRow { day: string; rec: Row | null; scheduled: boolean; mins: number; status: string; late: boolean; late_min: number }
+/** Where a day's record is in the Time In -> Break Out -> Break In -> Time Out sequence. */
+export type AttStage = 'none' | 'in' | 'break' | 'back' | 'done';
+export const attStage = (r: Row | null | undefined): AttStage =>
+  !r || !r.time_in ? 'none' : r.time_out ? 'done' : r.break_in ? 'back' : r.break_out ? 'break' : 'in';
+/** What is still missing on an unfinished record (shown wherever a record is flagged Incomplete). */
+export const attIssue = (r: Row | null | undefined) => {
+  const s = attStage(r);
+  return s === 'in' ? 'No break-out, break-in or time-out' : s === 'break' ? 'On break: no break-in or time-out' : s === 'back' ? 'No time-out' : '';
+};
+
+export interface DayRow { day: string; rec: Row | null; scheduled: boolean; mins: number; status: string; late: boolean; late_min: number; stage: AttStage; issue: string }
 
 /** Per-day attendance status list for one employee between two dates (inclusive), up to today. */
 export async function daily(u: Row, from: string, to: string): Promise<DayRow[]> {
@@ -125,9 +139,10 @@ export async function daily(u: Row, from: string, to: string): Promise<DayRow[]>
   for (let d = from; d <= to; d = U.addDays(d, 1)) {
     if (d > today) break;
     const r = recs[d];
-    const row: DayRow = { day: d, rec: r || null, scheduled: s.days.includes(U.dow(d)), mins: workedMin(u, r), status: '', late: !!(r && r.is_late), late_min: r ? r.late_min : 0 };
+    const row: DayRow = { day: d, rec: r || null, scheduled: s.days.includes(U.dow(d)), mins: workedMin(u, r), status: '', late: !!(r && r.is_late), late_min: r ? r.late_min : 0, stage: attStage(r), issue: '' };
     if (r && r.time_in) {
       row.status = !r.time_out && (d < today || nowStr.slice(11, 16) > s.end) ? 'Incomplete' : !r.time_out ? 'Clocked in' : r.is_late ? 'Late' : 'Present';
+      if (!r.time_out) row.issue = attIssue(r); // never auto-completed: a missed step stays visible until corrected
     } else if (hol.has(d)) row.status = 'Holiday';
     else if (leave.has(d)) row.status = 'Approved leave';
     else if (!row.scheduled) row.status = 'Rest day';

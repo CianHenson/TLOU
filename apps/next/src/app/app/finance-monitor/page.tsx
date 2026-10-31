@@ -8,6 +8,8 @@ import { DateRangeFilter, TableFilters } from '@/components/list-filters';
 import { ExpenseModalButton } from '@/components/expense-modal';
 import { FinanceTable } from '@/components/finance-table';
 import { ReceiptPanel } from '@/components/receipt-viewer';
+import { BatchUploadButton } from '@/components/batch-upload';
+import { EXPENSE_COLS } from '@/lib/batch-cols';
 
 export const metadata = { title: 'Finance Monitoring' };
 
@@ -21,7 +23,7 @@ export default async function FinanceMonitor(props: PageProps<'/app/finance-moni
   const active = [f.range === 'all' ? '' : `dates ${longDate(f.from)} to ${longDate(f.to)}`, f.categories.length && `types: ${f.categories.join(', ')}`, f.search && `search "${f.search}"`].filter(Boolean);
   const note = active.length ? `Filters are active (${active.join(', ')}). Only the filtered expenses will be exported.` : undefined;
   return (
-    <Page title="Monitoring Finances" actions={<ExpenseModalButton today={td} />} filters={
+    <Page title="Monitoring Finances" actions={<><BatchUploadButton title="Batch upload expenses" action="/api/expenses/batch" cols={EXPENSE_COLS} template="expenses-template.csv" /><ExpenseModalButton today={td} /></>} filters={
       <div className="af-bar"><DateRangeFilter today={td} showBy={false} allValue="all"
         initial={{ by: 'txn', from: f.range === 'all' ? '' : f.from, to: f.range === 'all' ? '' : f.to, range: f.range }} /></div>
     }>

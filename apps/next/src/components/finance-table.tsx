@@ -54,7 +54,7 @@ export function FinanceTable({ rows, total, today }: { rows: FinanceRow[]; total
       </table>
       {menu && (
         <div className="ctx-menu" role="menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
-          {!menu.ids.length && <button type="button" role="menuitem" onClick={() => { setMenu(null); window.dispatchEvent(new Event(NEW_EXPENSE_EVT)); }}>Record expense</button>}
+          {!menu.ids.length && <button type="button" role="menuitem" onClick={() => { setMenu(null); window.dispatchEvent(new Event(NEW_EXPENSE_EVT)); }}>Add expense</button>}
           {menu.ids.length === 1 && <button type="button" role="menuitem" onClick={() => { setEditing(rows.find((r) => r.id === menu.ids[0]) ?? null); setMenu(null); }}>Edit</button>}
           {!!menu.ids.length && <button type="button" role="menuitem" className="danger" onClick={() => remove(menu.ids)}>{menu.ids.length === 1 ? 'Delete' : `Delete ${menu.ids.length} expenses`}</button>}
         </div>

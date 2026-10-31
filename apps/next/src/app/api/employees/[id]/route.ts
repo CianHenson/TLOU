@@ -2,6 +2,7 @@ import { api, ok, fail, invalid, form, clientIp } from '@/lib/http';
 import { apiUser } from '@/lib/auth';
 import { db, tx } from '@/lib/db';
 import { audit } from '@/lib/biz';
+import { now } from '@/lib/util';
 import { hashPassword } from '@/lib/password';
 import { employeeInput } from '@/lib/queries/employee-input';
 
@@ -23,6 +24,7 @@ export const POST = api(async (req, ctx) => {
     // Account details only; the work schedule columns are left as they are.
     await d.run(`UPDATE users SET name=?,first_name=?,last_name=?,email=?,username=?,role=?,designation=?,active=?,can_expenses=? WHERE id=?`,
       [e.name, e.first_name, e.last_name, e.email, e.email, e.role, e.designation || null, e.active, e.can_expenses, old.id]);
+    if (e.role === 'employee') await d.run('INSERT IGNORE INTO employees (user_id,hourly_rate,active,created_at) VALUES (?,0,?,?)', [old.id, e.active, now()]);
     if (hash) await d.run('UPDATE users SET password_hash=?, must_change_pw=1 WHERE id=?', [hash, old.id]);
   });
   await audit({ user, ip: clientIp(req) }, 'employee.update', 'user', old.id, {

@@ -18,11 +18,11 @@ export const POST = api(async (req) => {
   const fields = fd.getAll('field').map(String), values = fd.getAll('value').map((v) => String(v).trim());
   const T = /^([01]\d|2[0-3]):[0-5]\d$/;
   if (!isDate(day) || day > today() || day < addDays(today(), -60)) return fail('Corrections can be requested for the last 60 days only.');
-  if (!fields.length || fields.length !== values.length || fields.length > 3 || new Set(fields).size !== fields.length) return fail('Add one to three different corrections.');
+  if (!fields.length || fields.length !== values.length || fields.length > 5 || new Set(fields).size !== fields.length) return fail('Add one to five different corrections.');
   for (const [i, f] of fields.entries()) {
-    if ((f === 'time_in' || f === 'time_out') && !T.test(values[i])) return fail('Enter valid times (HH:MM).');
+    if (['time_in', 'break_out', 'break_in', 'time_out'].includes(f) && !T.test(values[i])) return fail('Enter valid times (HH:MM).');
     if (f === 'status' && !ATT_STATUSES.includes(values[i])) return fail('Choose a valid status.');
-    if (!['time_in', 'time_out', 'status'].includes(f)) return fail('Unknown correction type.');
+    if (!['time_in', 'break_out', 'break_in', 'time_out', 'status'].includes(f)) return fail('Unknown correction type.');
   }
   if (!reason) return invalid({ reason: 'Tell us the reason for the correction.' });
   if (await db.get(`SELECT id FROM attendance_correction_requests WHERE user_id=? AND day=? AND status='Pending'`, [user.id, day])) return fail('You already have a pending correction request for that day.');

@@ -3,7 +3,7 @@ import { apiUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { audit } from '@/lib/biz';
 import { now } from '@/lib/util';
-import { airfareInput } from '@/lib/queries/airfare';
+import { airfareInput, airlineError } from '@/lib/queries/airfare';
 
 export const POST = api(async (req, ctx) => {
   const user = await apiUser();
@@ -12,6 +12,7 @@ export const POST = api(async (req, ctx) => {
   if (!old) return fail('Sale not found.', 404);
   const { b } = await form(req);
   const { a, errors } = airfareInput(b);
+  if (!errors.airline) { const m = await airlineError(a.airline, old.airline); if (m) errors.airline = m; }
   if (Object.keys(errors).length) return invalid(errors);
   await db.run(`UPDATE airfare_sales SET txn_date=?,airline=?,pnr=?,pax=?,passenger=?,contact=?,email_fb=?,origin=?,destination=?,travel_date=?,travel_time=?,
       checkin_status=?,flight_no=?,total_amount=?,service_charge=?,card_fee=?,remarks=?,updated_at=? WHERE id=?`,

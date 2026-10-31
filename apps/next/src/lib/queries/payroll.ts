@@ -55,7 +55,8 @@ export async function attendanceRecords(f: { from: string; to: string; uid: numb
   for (const e of emps) {
     for (const d of await B.daily(e, f.from, f.to)) {
       if (!keep.has(d.status) || (!(e.active && e.user_active) && !d.rec)) continue;
-      out.push({ uid: e.id, name: e.name, designation: e.designation, day: d.day, status: d.status, time_in: d.rec?.time_in ?? null, time_out: d.rec?.time_out ?? null, late_min: d.late ? d.late_min : 0, mins: d.mins });
+      out.push({ uid: e.id, name: e.name, designation: e.designation, day: d.day, status: d.status, time_in: d.rec?.time_in ?? null, break_out: d.rec?.break_out ?? null, break_in: d.rec?.break_in ?? null,
+        time_out: d.rec?.time_out ?? null, late_min: d.late ? d.late_min : 0, mins: d.mins, issue: d.issue });
     }
   }
   return out.sort((a, b) => (a.day === b.day ? String(a.name).localeCompare(b.name) : a.day < b.day ? 1 : -1));

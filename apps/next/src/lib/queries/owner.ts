@@ -131,3 +131,18 @@ export async function financeDetail(from: string, to: string) {
 export const CONTENT_KEYS = ['business_name', 'tagline', 'location', 'phone', 'mobile', 'email', 'address', 'map_url', 'hours', 'facebook', 'facebook_name', 'instagram', 'about', 'mission', 'vision', 'values', 'fares_title', 'fares_note', 'fares', 'partners', 'why', 'privacy'];
 export const LONG_KEYS = ['privacy', 'about', 'fares', 'why', 'fares_note', 'partners', 'mission', 'vision'];
 export const SYSTEM_KEYS = ['retention_years'];
+
+/** Today's attendance counts for the owner dashboard (active employees only). */
+export async function attendanceToday() {
+  const today = U.today();
+  const staff = await activeStaff();
+  const ids = new Set(staff.map((u) => u.id));
+  const todayRecs = (await db.all('SELECT * FROM attendance WHERE day=?', [today])).filter((r) => ids.has(r.user_id));
+  const todayRows = await Promise.all(staff.map(async (u) => (await B.daily(u, today, today))[0]));
+  return {
+    active: staff.length, timedIn: todayRecs.length, clockedIn: todayRecs.filter((r) => r.time_in && !r.time_out).length,
+    late: todayRecs.filter((r) => r.is_late).length, absent: todayRows.filter((r) => r && r.status === 'Absent').length,
+    // Records that were never finished (no time-out, e.g. a skipped break or a forgotten time-out) on earlier days - last 30 days.
+    incomplete: (await db.val(`SELECT COUNT(*) FROM attendance WHERE time_out IS NULL AND day<? AND day>=?`, [today, U.addDays(today, -30)])) ?? 0,
+  };
+}

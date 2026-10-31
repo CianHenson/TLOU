@@ -11,7 +11,7 @@ import { EXPENSE_CATS, METHODS } from '@/lib/types';
 export const NEW_EXPENSE_EVT = 'expense:new';
 
 /**
- * Gold "+" header button (Monitoring Finances) that opens the Record expense form in a modal. Posts to /api/expenses
+ * Gold "+" header button (Expenses, Monitoring Finances) that opens the Add expense form in a modal. Posts to /api/expenses
  * like the Expenses page; on save the dialog closes, the sheet refreshes and the form is remounted empty.
  */
 export function ExpenseModalButton({ today }: { today: string }) {
@@ -25,13 +25,13 @@ export function ExpenseModalButton({ today }: { today: string }) {
   }, []);
   return (
     <>
-      <button type="button" className="icon-btn" aria-label="Record expense" title="Record expense" aria-haspopup="dialog" onClick={() => dlg.current?.showModal()}>
+      <button type="button" className="icon-btn" aria-label="Add expense" title="Add expense" aria-haspopup="dialog" onClick={() => dlg.current?.showModal()}>
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
       </button>
       <ShellPortal>
         <dialog ref={dlg} className="modal wide" style={{ width: 'min(620px, calc(100vw - 32px))' }} aria-labelledby="ex-title" onClick={(e) => { if (e.target === dlg.current) close(); }}>
           <div className="modal-head">
-            <h3 id="ex-title">Record an expense</h3>
+            <h3 id="ex-title">Add expense</h3>
             <button type="button" className="modal-x" aria-label="Close" onClick={close}>×</button>
           </div>
           <div className="modal-body">

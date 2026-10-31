@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { FlashBar } from './flash';
 import { MenuButton } from './widgets';
 import type { Page } from '@/lib/list';
+import { dt12 } from '@/lib/util';
 
 /** Default badge colour for a status word (pass `cls` to override, e.g. the booking/request palettes in the old views). */
 export function badgeClass(s: string): string {
@@ -78,5 +79,5 @@ export function Pager({ list }: { list: Pick<Page, 'page' | 'pages' | 'total' | 
   );
 }
 
-/** Pretty "YYYY-MM-DD HH:mm" from a stored timestamp. */
-export const dt = (s: string | null | undefined) => (s ? s.slice(0, 16) : '');
+/** Pretty "YYYY-MM-DD 3:55 PM" from a stored timestamp. */
+export const dt = (s: string | null | undefined) => dt12(s);

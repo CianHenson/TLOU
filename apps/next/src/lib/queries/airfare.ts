@@ -46,6 +46,12 @@ export function needsCheckin(hours = 48) {
     AND CONCAT(travel_date,' ',COALESCE(travel_time,'23:59')) >= ? ORDER BY travel_date, travel_time`, [today(), until, n.slice(0, 16)]);
 }
 
+/** The airline must be one of the active airlines (Airlines page); an existing sale may keep the airline it already has even if that one was since deactivated or renamed. */
+export async function airlineError(name: string, current?: string | null) {
+  if (!name || name === current) return '';
+  return (await db.get('SELECT 1 FROM airlines WHERE name=? AND active=1', [name])) ? '' : 'Choose an airline from the list (the owner adds airlines on the Airlines page).';
+}
+
 export function airfareInput(b: Record<string, FormDataEntryValue | undefined>) {
   const money = (v: unknown) => (String(v ?? '').trim() === '' ? 0 : toCents(v));
   const a = {
@@ -64,7 +70,7 @@ export function airfareInput(b: Record<string, FormDataEntryValue | undefined>) 
   if (!a.destination) errors.destination = 'Required.';
   if (!isDate(a.travel_date)) errors.travel_date = 'Enter a valid date.';
   else if (isDate(a.txn_date) && a.travel_date < a.txn_date) errors.travel_date = 'Cannot be before the transaction date.';
-  if (a.travel_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(a.travel_time)) errors.travel_time = 'Use HH:MM.';
+  if (a.travel_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(a.travel_time)) errors.travel_time = 'Enter a valid time, e.g. 8:30 AM.';
   if (a.contact && !/^\+?\d{7,15}$/.test(a.contact)) errors.contact = 'Numbers only (7–15 digits), e.g. 09171234567.';
   if (!CHECKIN_STATUSES.includes(a.checkin_status)) errors.checkin_status = 'Choose a status.';
   if (!Number.isFinite(a.total_amount) || a.total_amount <= 0) errors.total_amount = 'Enter the amount the customer paid.';

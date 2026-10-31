@@ -15,7 +15,7 @@ export default async function AttendanceReport(props: PageProps<'/app/attendance
   const uid = /^\d+$/.test(q.employee || '') ? Number(q.employee) : null;
   const { all, detail, sums, prev, compare, corr } = await attendanceReport(ym, uid);
   const base = `/api/attendance-report/export?month=${ym}&employee=${uid || ''}`;
-  const hm = (s?: string | null) => (s ? s.slice(11, 16) : '');
+  const hm = (s?: string | null) => U.hm12(s);
   return (
     <Page title="Monthly Attendance Report">
       <form className="card filters noprint" method="get">
@@ -47,7 +47,7 @@ export default async function AttendanceReport(props: PageProps<'/app/attendance
 
       <h2>Corrections made this month</h2>
       <div className="tw"><table><thead><tr><th>When</th><th>Employee</th><th>Date</th><th>Original</th><th>Corrected</th><th>Reason</th><th>By</th></tr></thead><tbody>
-        {corr.map((c) => <tr key={c.id}><td>{c.at.slice(0, 16)}</td><td>{c.who}</td><td>{c.day}</td><td>{hm(c.old_in) || '—'} → {hm(c.old_out) || '—'}</td><td>{hm(c.new_in)} → {c.new_out ? hm(c.new_out) : '—'}</td><td>{c.reason}</td><td>{c.by_name}</td></tr>)}
+        {corr.map((c) => <tr key={c.id}><td>{U.dt12(c.at)}</td><td>{c.who}</td><td>{c.day}</td><td>{hm(c.old_in) || '—'} → {hm(c.old_out) || '—'}</td><td>{hm(c.new_in)} → {c.new_out ? hm(c.new_out) : '—'}</td><td>{c.reason}</td><td>{c.by_name}</td></tr>)}
         {!corr.length && <tr><td colSpan={7} className="empty">No corrections.</td></tr>}</tbody></table></div>
     </Page>
   );

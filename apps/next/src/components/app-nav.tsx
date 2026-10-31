@@ -24,8 +24,8 @@ const ICONS: Record<string, ReactNode> = {
   '/app/audit': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></>,
   '/app/profile': <><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>,
   '/app/customers': <><path d="M3 4h18v16H3z" /><circle cx="9" cy="10" r="2" /><path d="M15 9h3M15 13h3M6 16a3 3 0 0 1 6 0" /></>,
-  '/app/requests': <path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />,
-  '/app/bookings': <path d="M3 7h18v4a2 2 0 0 0 0 4v4H3v-4a2 2 0 0 0 0-4zM13 7v12" />,
+  '/app/airlines': <path d="M2 16l20-5-4-6-3 1-5 3-6 1zM8 15l-1 5 3-1 2-4" />,
+  '/app/deductions': <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />,
   '/app/payments': <path d="M2 5h20v14H2zM2 10h20" />,
 };
 const DOT = <circle cx="12" cy="12" r="3" />;

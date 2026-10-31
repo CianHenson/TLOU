@@ -32,18 +32,22 @@ export const POST = api(async (req, ctx) => {
   const get = (f: string) => changes.find((c) => c.field === f)?.value;
   const u = (await db.get('SELECT * FROM users WHERE id=?', [r.user_id]))!;
   const old = await db.get('SELECT * FROM attendance WHERE user_id=? AND day=?', [r.user_id, r.day]);
-  const tin = get('time_in'), tout = get('time_out'), status = get('status');
-  const newIn = tin ? `${r.day} ${tin}:00` : old?.time_in ?? null;
-  const newOut = tout ? `${r.day} ${tout}:00` : old?.time_out ?? null;
-  if ((tin || tout) && !newIn) return fail('There is no time in on that day — the request must include a time in.');
+  const tin = get('time_in'), tout = get('time_out'), tbo = get('break_out'), tbi = get('break_in'), status = get('status');
+  const at = (t: string | undefined, prev: string | null | undefined) => (t ? `${r.day} ${t}:00` : prev ?? null);
+  const newIn = at(tin, old?.time_in), newOut = at(tout, old?.time_out), newBo = at(tbo, old?.break_out), newBi = at(tbi, old?.break_in);
+  const timed = !!(tin || tout || tbo || tbi);
+  if (timed && !newIn) return fail('There is no time in on that day — the request must include a time in.');
+  if (newBi && !newBo) return fail('A break-in needs a break-out.');
+  const seq = [newIn, newBo, newBi, newOut].filter(Boolean) as string[];
+  if (seq.some((t, i) => i && t < seq[i - 1])) return fail('The corrected times must be in order: time in, break out, break in, time out.');
   if (newIn && newOut && newOut <= newIn) return fail('The corrected time out must be after the time in.');
   const notes: string[] = [];
   await tx(async (d) => {
-    if (tin || tout) {
+    if (timed) {
       const late = lateInfo(u, newIn!);
       await d.run('INSERT INTO attendance_corrections (user_id,day,old_in,old_out,new_in,new_out,reason,by_user,at) VALUES (?,?,?,?,?,?,?,?,?)', [r.user_id, r.day, old?.time_in, old?.time_out, newIn, newOut, `Staff request: ${r.reason}`, user.id, now()]);
-      if (old) await d.run('UPDATE attendance SET time_in=?,time_out=?,is_late=?,late_min=? WHERE id=?', [newIn, newOut, late.is_late, late.late_min, old.id]);
-      else await d.run('INSERT INTO attendance (user_id,day,time_in,time_out,is_late,late_min) VALUES (?,?,?,?,?,?)', [r.user_id, r.day, newIn, newOut, late.is_late, late.late_min]);
+      if (old) await d.run('UPDATE attendance SET time_in=?,break_out=?,break_in=?,time_out=?,is_late=?,late_min=? WHERE id=?', [newIn, newBo, newBi, newOut, late.is_late, late.late_min, old.id]);
+      else await d.run('INSERT INTO attendance (user_id,day,time_in,break_out,break_in,time_out,is_late,late_min) VALUES (?,?,?,?,?,?,?,?)', [r.user_id, r.day, newIn, newBo, newBi, newOut, late.is_late, late.late_min]);
     }
     if (status === 'Present' && (old || tin)) await d.run('UPDATE attendance SET is_late=0, late_min=0 WHERE user_id=? AND day=?', [r.user_id, r.day]);
     else if (status === 'Approved leave') await d.run('INSERT IGNORE INTO leaves (user_id,day,kind,note) VALUES (?,?,?,?)', [r.user_id, r.day, 'Leave', 'Correction request']);

@@ -135,7 +135,7 @@ const shortTime = (t: string) => { const x = to12(t); return `${x.h}:${pad(x.m)}
  * Inline 12-hour time entry: separate Hour / Minute / AM-PM selects (keyboard friendly, native on touch). The value is still
  * submitted as 'HH:MM' (24 h) through a hidden input, or '' when nothing is chosen. Choosing only some parts is an error.
  */
-export function TimePicker({ name, defaultValue = '', ariaLabel, invalid }: { name: string; defaultValue?: string; ariaLabel: string; invalid?: boolean }) {
+export function TimePicker({ name, defaultValue = '', ariaLabel, invalid, optional = true }: { name: string; defaultValue?: string; ariaLabel: string; invalid?: boolean; optional?: boolean }) {
   const init = /^\d{2}:\d{2}/.test(defaultValue) ? to12(defaultValue) : null;
   const [t, setT] = useState({ h: init ? String(init.h) : '', m: init ? pad(init.m) : '', ap: init ? init.ap : '' });
   const hr = useRef<HTMLSelectElement>(null);
@@ -161,7 +161,7 @@ export function TimePicker({ name, defaultValue = '', ariaLabel, invalid }: { na
         {sel('ap', 'AM or PM', 'AM/PM', ['AM', 'PM'])}
         {filled > 0 && <button type="button" className="tp-clear" aria-label={`Clear ${ariaLabel.toLowerCase()}`} title="Clear time" onClick={() => setT({ h: '', m: '', ap: '' })}>×</button>}
       </div>
-      <div className="small tp-sum" aria-live="polite">{val ? `Selected: ${shortTime(val)}` : 'Optional · 12-hour format'}</div>
+      <div className="small tp-sum" aria-live="polite">{val ? `Selected: ${shortTime(val)}` : optional ? 'Optional · 12-hour format' : '12-hour format · choose AM or PM'}</div>
       {partial && <div className="err" role="alert">{msg}</div>}
     </div>
   );
@@ -177,11 +177,11 @@ export function DateField({ name, label, ...rest }: { name: string; label: strin
   );
 }
 
-export function TimeField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string }) {
+export function TimeField({ name, label, defaultValue, optional = true }: { name: string; label: string; defaultValue?: string; optional?: boolean }) {
   const e = useFormState().errors[name];
   return (
     <div className={`field ${e ? 'has-err' : ''}`}><label>{label}</label>
-      <TimePicker name={name} ariaLabel={label} defaultValue={defaultValue} invalid={!!e} />
+      <TimePicker name={name} ariaLabel={label || 'Time'} defaultValue={defaultValue} invalid={!!e} optional={optional} />
       {e && <div className="err" role="alert">{e}</div>}</div>
   );
 }

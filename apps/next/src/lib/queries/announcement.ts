@@ -1,21 +1,21 @@
-// Dashboard announcements + their history (table `announcements`). Two slots: the pinned one (owner / admin only) and the
-// regular one (anyone). The newest row of a slot is its current text; an empty body means "removed".
+// Dashboard announcements (table `announcement_posts`, one row per post). The owner / admin can pin up to MAX_PINNED of them;
+// pinned posts always lead on every dashboard. Removed posts keep their row (deleted_at) but are never listed.
 import { db } from '../db';
+import type { Post } from '../announcement-shared';
 
-export type Announcement = { text: string; by: string; at: string };
-export type AnnouncementLog = { id: number; body: string; by: string; at: string; pinned: boolean };
+export { MAX_PINNED, type Post } from '../announcement-shared';
 
-async function slot(pinned: 0 | 1): Promise<Announcement> {
-  const r = await db.get('SELECT body,user_name,at FROM announcements WHERE pinned=? ORDER BY id DESC LIMIT 1', [pinned]);
-  return { text: r?.body ?? '', by: r?.user_name ?? '', at: r?.at ?? '' };
+const map = (r: Record<string, any>): Post => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+  id: r.id, text: r.body ?? '', by: r.user_name ?? '', at: r.created_at ?? '', edited: r.updated_at ?? '', pinned: !!r.pinned && !r.deleted_at, pinnedAt: r.pinned_at ?? '', removed: !!r.deleted_at,
+});
+
+/** Every live post: pinned ones first (most recently pinned first), then the rest newest first. */
+export async function getPosts(limit = 60): Promise<Post[]> {
+  const rows = await db.all('SELECT * FROM announcement_posts WHERE deleted_at IS NULL ORDER BY pinned DESC, IF(pinned=1,pinned_at,NULL) DESC, id DESC LIMIT ?', [limit]);
+  return rows.map(map);
 }
 
-export async function getAnnouncements(): Promise<{ pinned: Announcement; regular: Announcement }> {
-  const [pinned, regular] = await Promise.all([slot(1), slot(0)]);
-  return { pinned, regular };
-}
-
-export async function announcementHistory(limit = 50): Promise<AnnouncementLog[]> {
-  const rows = await db.all('SELECT id,body,user_name,at,pinned FROM announcements ORDER BY id DESC LIMIT ?', [limit]);
-  return rows.map((r) => ({ id: r.id, body: r.body ?? '', by: r.user_name ?? '', at: r.at ?? '', pinned: !!r.pinned }));
+/** Every announcement ever posted (newest first), including removed ones: the History dialog. */
+export async function getHistory(limit = 200): Promise<Post[]> {
+  return (await db.all('SELECT * FROM announcement_posts ORDER BY id DESC LIMIT ?', [limit])).map(map);
 }

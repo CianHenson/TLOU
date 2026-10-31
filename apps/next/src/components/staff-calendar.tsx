@@ -1,51 +1,74 @@
-// Staff dashboard: month calendar of the signed-in user's own attendance. Worked days are highlighted; hovering one shows
-// the time in / out and the hours rendered; clicking it opens My Attendance on that day (the row pulses there).
+// Staff dashboard: the signed-in user's own attendance for the current month and the upcoming one side by side (so the turn
+// of the month, e.g. October to November, is visible at a glance). Worked days are highlighted; hovering a day shows the
+// recorded times and hours; clicking any day up to today opens My Attendance with that day selected.
 import Link from 'next/link';
 import * as U from '@/lib/util';
 import type { DayRow } from '@/lib/biz';
 
-const hm = (s?: string | null) => (s ? s.slice(11, 16) : '');
+const hm = (s?: string | null) => U.hm12(s);
 const NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const nextMonth = (ym: string) => U.addDays(U.monthRange(ym)[1], 1).slice(0, 7);
+const longMonth = (ym: string) => new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
-export function StaffCalendar({ ym, rows, today }: { ym: string; rows: DayRow[]; today: string }) {
+function Month({ ym, by, today }: { ym: string; by: Map<string, DayRow>; today: string }) {
   const [from, to] = U.monthRange(ym);
-  const by = new Map(rows.map((r) => [r.day, r]));
   const lead = U.dow(from), last = Number(to.slice(8));
-  const total = rows.reduce((a, r) => a + r.mins, 0), worked = rows.filter((r) => r.rec?.time_in).length;
-  const prev = U.addDays(from, -1).slice(0, 7), next = U.addDays(to, 1).slice(0, 7);
-  const title = new Date(from + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   const cells: (string | null)[] = [...Array(lead).fill(null), ...Array.from({ length: last }, (_, i) => `${ym}-${String(i + 1).padStart(2, '0')}`)];
+  const title = longMonth(ym);
   return (
-    <div className="card cal">
-      <div className="cal-head">
-        <h3>{title}</h3>
-        <span className="cal-nav">
-          <Link href={`/app?cal=${prev}`} aria-label="Previous month">‹</Link>
-          {ym !== today.slice(0, 7) && <Link href="/app" className="cal-today">Today</Link>}
-          {next <= today.slice(0, 7) && <Link href={`/app?cal=${next}`} aria-label="Next month">›</Link>}
-        </span>
-      </div>
+    <div className="cal-month">
+      <h4>{title}</h4>
       <div className="cal-grid" role="grid" aria-label={`Attendance for ${title}`}>
         {NAMES.map((n) => <div key={n} className="cal-dow" role="columnheader">{n}</div>)}
         {cells.map((d, i) => {
           if (!d) return <div key={`e${i}`} className="cal-d empty" />;
-          const r = by.get(d), did = !!r?.rec?.time_in, col = i % 7;
-          const cls = `cal-d${did ? ' work' : ''}${d === today ? ' today' : ''}${r?.status === 'Absent' ? ' absent' : ''}${r?.late && did ? ' late' : ''}${col < 2 ? ' tip-l' : col > 4 ? ' tip-r' : ''}`;
+          const r = by.get(d), did = !!r?.rec?.time_in, col = i % 7, future = d > today;
+          const row = Math.floor(i / 7);
+          const cls = `cal-d${row < 2 ? ' tip-b' : ''}${did ? ' work' : ''}${d === today ? ' today' : ''}${r?.status === 'Absent' ? ' absent' : ''}${r?.late && did ? ' late' : ''}${future ? ' future' : ''}${col < 2 ? ' tip-l' : col > 4 ? ' tip-r' : ''}`;
           const num = Number(d.slice(8));
-          if (!did) return <div key={d} className={cls} title={r?.status === 'Absent' ? 'Absent' : undefined}>{num}</div>;
+          if (future) return <div key={d} className={cls} title="Upcoming">{num}</div>;
           return (
-            <Link key={d} className={cls} href={`/app/attendance?month=${ym}&hl=${d}`}>
+            <Link key={d} className={cls} href={`/app/attendance?month=${ym}&hl=${d}`} aria-label={`${U.longDate(d)}${r ? ': ' + r.status : ''}`}>
               {num}
               <span className="cal-tip" role="tooltip">
                 <b>{U.longDate(d)}</b>
-                <span>In <em>{hm(r!.rec!.time_in)}</em> · Out <em>{hm(r!.rec!.time_out) || 'not yet'}</em></span>
-                <span>{r!.mins ? `${U.hrs(r!.mins)} hrs rendered` : 'Hours pending'}{r!.late ? ` · late ${r!.late_min} min` : ''}</span>
+                <span className="cal-st">{r?.status ?? 'No record'}</span>
+                {did ? <>
+                  <span className="cal-row"><i>Time in</i><em>{hm(r!.rec!.time_in) || '—'}</em></span>
+                  <span className="cal-row"><i>Break out</i><em>{hm(r!.rec!.break_out) || '—'}</em></span>
+                  <span className="cal-row"><i>Break in</i><em>{hm(r!.rec!.break_in) || '—'}</em></span>
+                  <span className="cal-row"><i>Time out</i><em>{hm(r!.rec!.time_out) || 'Not yet'}</em></span>
+                  {r!.late && <span className="cal-row"><i>Late by</i><em>{r!.late_min} min</em></span>}
+                  <span className="cal-row"><i>Hours worked</i><em>{r!.rec!.time_out ? U.hrs(r!.mins) : 'Pending'}</em></span>
+                  {r!.issue && <span className="cal-warn">{r!.issue}</span>}
+                </> : <span className="cal-none">No attendance recorded</span>}
               </span>
             </Link>
           );
         })}
       </div>
-      <div className="cal-foot"><span><i className="work" /> Worked</span><span><i className="absent" /> Absent</span><b>{worked} day{worked === 1 ? '' : 's'} · {U.hrs(total)} hrs this month</b></div>
+    </div>
+  );
+}
+
+/** `ym` is the first of the two months shown; `rows` are the daily rows from the first day of `ym` to the end of the month after it. */
+export function StaffCalendar({ ym, rows, today }: { ym: string; rows: DayRow[]; today: string }) {
+  const by = new Map(rows.map((r) => [r.day, r]));
+  const second = nextMonth(ym), cur = today.slice(0, 7);
+  const shown = rows.filter((r) => r.day.slice(0, 7) === ym || r.day.slice(0, 7) === second);
+  const total = shown.reduce((a, r) => a + r.mins, 0), worked = shown.filter((r) => r.rec?.time_in).length;
+  const prev = U.addDays(`${ym}-01`, -1).slice(0, 7);
+  return (
+    <div className="card cal">
+      <div className="cal-head">
+        <h3>Attendance calendar</h3>
+        <span className="cal-nav">
+          <Link href={`/app?cal=${prev}`} aria-label="Previous month">‹</Link>
+          {ym !== cur && <Link href="/app" className="cal-today">Today</Link>}
+        </span>
+      </div>
+      <div className="cal-months"><Month ym={ym} by={by} today={today} /><Month ym={second} by={by} today={today} /></div>
+      <div className="cal-foot"><span><i className="work" /> Worked</span><span><i className="absent" /> Absent</span><b>{worked} day{worked === 1 ? '' : 's'} · {U.hrs(total)} hrs in these months</b></div>
     </div>
   );
 }

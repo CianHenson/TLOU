@@ -1,6 +1,6 @@
 'use client';
 // Owner dashboard charts (Recharts): money trend, airfare trend and the attendance donut. Text / grid colours come from CSS (.dchart).
-import { Area, AreaChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const GOLD = '#c99a2e', BROWN = '#b5651d', GREEN = '#2f7d4a', RED = '#b23a2b', GREY = '#cfc7b0';
 const k = (v: number | string) => { const n = Number(v); return '₱' + (Math.abs(n) >= 1000 ? (n / 1000).toLocaleString('en-PH', { maximumFractionDigits: 1 }) + 'k' : n.toLocaleString('en-PH')); };
@@ -19,8 +19,9 @@ export function Panel({ title, sub, children, span }: { title: string; sub?: str
   );
 }
 
-export function MoneyTrend({ months, sales, expenses, net }: { months: string[]; sales: number[]; expenses: number[]; net: number[] }) {
-  const data = months.map((m, i) => ({ m, sales: sales[i], expenses: expenses[i], net: net[i] }));
+/** Monthly expenses (bars) against what the agency kept after them (net result line). */
+export function ExpenseTrend({ months, expenses, net }: { months: string[]; expenses: number[]; net: number[] }) {
+  const data = months.map((m, i) => ({ m, expenses: expenses[i], net: net[i] }));
   return (
     <div className="dchart"><ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -28,6 +29,7 @@ export function MoneyTrend({ months, sales, expenses, net }: { months: string[];
         <XAxis dataKey="m" tickFormatter={mon} {...axis} /><YAxis tickFormatter={k} width={56} {...axis} />
         <Tooltip formatter={(v) => full(v)} labelFormatter={monLong} />
         <Legend iconType="circle" iconSize={8} />
+        <Bar dataKey="expenses" name="Expenses" fill={BROWN} radius={[4, 4, 0, 0]} maxBarSize={22} />
         <Line type="monotone" dataKey="net" name="Net result" stroke={GREEN} strokeWidth={2.5} dot={false} />
       </ComposedChart>
     </ResponsiveContainer></div>

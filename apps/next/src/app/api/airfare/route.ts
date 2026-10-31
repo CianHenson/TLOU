@@ -3,12 +3,13 @@ import { apiUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { audit } from '@/lib/biz';
 import { now } from '@/lib/util';
-import { airfareInput } from '@/lib/queries/airfare';
+import { airfareInput, airlineError } from '@/lib/queries/airfare';
 
 export const POST = api(async (req) => {
   const user = await apiUser();
   const { b } = await form(req);
   const { a, errors } = airfareInput(b);
+  if (!errors.airline) { const m = await airlineError(a.airline); if (m) errors.airline = m; }
   if (!errors.pnr && b.dup_ok !== 'on') {
     const dup = await db.get('SELECT passenger, txn_date FROM airfare_sales WHERE pnr=? LIMIT 1', [a.pnr]);
     if (dup) errors.pnr = `Already recorded for ${dup.passenger} on ${dup.txn_date}. Tick "Save even if…" to add it anyway.`;

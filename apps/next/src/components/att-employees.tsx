@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { hrs, peso } from '@/lib/util';
 import { WEEKDAYS, type Row } from '@/lib/types';
 import { ApiForm, Field, Submit } from './form';
+import { TimeField } from './date-time-picker';
+import { hm12 } from '@/lib/util';
 import { moneyInput } from './input-format';
 import { useRowSelection } from './row-select';
 import { FootLine } from './ui';
@@ -59,8 +61,8 @@ function EditEmployee({ e, onClose }: { e: Row; onClose: () => void }) {
             hint="Applies to payroll generated from now on; payroll already generated keeps its rate." />
           <h3>Work schedule &amp; attendance rules</h3>
           <div className="grid g4">
-            <Field name="sched_start" label="Shift start" type="time" defaultValue={e.sched_start} />
-            <Field name="sched_end" label="Shift end" type="time" defaultValue={e.sched_end} />
+            <TimeField name="sched_start" label="Shift start" defaultValue={e.sched_start} />
+            <TimeField name="sched_end" label="Shift end" defaultValue={e.sched_end} />
             <Field name="grace_min" label="Grace period (min)" type="number" defaultValue={e.grace_min} attrs={{ min: 0, max: 120 }} />
             <Field name="break_min" label="Unpaid break (min)" type="number" defaultValue={e.break_min} attrs={{ min: 0, max: 240 }} />
           </div>
@@ -97,7 +99,7 @@ export function EmployeeTable({ rows, monthLabel, month, searching = false }: { 
           {rows.map((e, i) => (
             <tr key={e.employee_id} {...rowProps(i, e.active ? '' : 'off')} onDoubleClick={() => edit(Number(e.employee_id))}>
               <td>{e.name}<div className="small muted">{e.email}</div></td><td>{e.designation || '—'}</td>
-              <td className="nowrap">{e.sched_start}–{e.sched_end}<div className="small muted">{String(e.workdays).split(',').filter(Boolean).map((d) => WEEKDAYS[Number(d)]).join(', ')}</div></td>
+              <td className="nowrap">{hm12(e.sched_start)} – {hm12(e.sched_end)}<div className="small muted">{String(e.workdays).split(',').filter(Boolean).map((d) => WEEKDAYS[Number(d)]).join(', ')}</div></td>
               <td className="num">{e.hourly_rate ? peso(e.hourly_rate) : <span className="badge b-warn">Not set</span>}</td>
               <td><span className={`badge ${e.active && e.user_active ? 'b-ok' : 'b-err'}`}>{e.active ? (e.user_active ? 'Active' : 'Account off') : 'Deactivated'}</span></td>
               <td className="num">{e.days}</td><td className="num">{hrs(e.minutes)}</td>
