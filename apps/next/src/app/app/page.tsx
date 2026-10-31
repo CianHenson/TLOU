@@ -13,7 +13,7 @@ import { DateRangeFilter } from '@/components/list-filters';
 import { AirfareTrend, AttendanceDonut, ExpenseTrend, Panel } from '@/components/dash-charts';
 import { AnnouncementCard } from '@/components/announcement-card';
 import { getHistory, getPosts } from '@/lib/queries/announcement';
-import { StaffCalendar } from '@/components/staff-calendar';
+import { StaffCalendar, maxMonth } from '@/components/staff-calendar';
 import { LEAVE_BADGE } from '@/lib/types';
 
 export const metadata = { title: 'Dashboard' };
@@ -27,12 +27,12 @@ export default async function Dashboard(props: PageProps<'/app'>) {
   const clock = <ClockCard name={me.name} rec={rec} mins={mins} bar />;
 
   if (!isOwner(user)) {
-    // The calendar shows two months (the chosen one and the one after it); by default this month and the upcoming one.
+    // One month at a time (left / right buttons); by default this month.
     const cal = String(flat(await props.searchParams).cal ?? '');
     const cur = U.today().slice(0, 7);
-    const ym = /^\d{4}-(0[1-9]|1[0-2])$/.test(cal) && cal <= cur ? cal : cur;
+    const ym = /^\d{4}-(0[1-9]|1[0-2])$/.test(cal) && cal <= maxMonth(cur) ? cal : cur;
     const [days, requests] = await Promise.all([
-      B.daily(me, U.monthRange(ym)[0], U.monthRange(U.addDays(U.monthRange(ym)[1], 1).slice(0, 7))[1]),
+      B.daily(me, ...U.monthRange(ym)),
       db.all('SELECT id, kind, from_day, to_day, status, decline_reason FROM leave_requests WHERE user_id=? ORDER BY created_at DESC LIMIT 6', [me.id]),
     ]);
     const span = (a: string, b: string) => (a === b ? U.longDate(a) : `${U.longDate(a)} – ${U.longDate(b)}`);

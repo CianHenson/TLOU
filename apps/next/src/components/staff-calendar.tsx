@@ -7,6 +7,8 @@ import type { DayRow } from '@/lib/biz';
 
 const hm = (s?: string | null) => U.hm12(s);
 const NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** Furthest month the calendar can move forward to: 12 months after the current one. */
+export const maxMonth = (cur: string) => { const [y, m] = cur.split('-').map(Number); const t = y * 12 + (m - 1) + 12; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}`; };
 const nextMonth = (ym: string) => U.addDays(U.monthRange(ym)[1], 1).slice(0, 7);
 const longMonth = (ym: string) => new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -51,12 +53,11 @@ function Month({ ym, by, today }: { ym: string; by: Map<string, DayRow>; today: 
   );
 }
 
-/** `ym` is the first of the two months shown; `rows` are the daily rows from the first day of `ym` to the end of the month after it. */
+/** One month at a time: `ym` is the month shown and `rows` its daily rows. The left / right buttons move to the previous / next month. */
 export function StaffCalendar({ ym, rows, today }: { ym: string; rows: DayRow[]; today: string }) {
   const by = new Map(rows.map((r) => [r.day, r]));
-  const second = nextMonth(ym), cur = today.slice(0, 7);
-  const shown = rows.filter((r) => r.day.slice(0, 7) === ym || r.day.slice(0, 7) === second);
-  const total = shown.reduce((a, r) => a + r.mins, 0), worked = shown.filter((r) => r.rec?.time_in).length;
+  const cur = today.slice(0, 7), next = nextMonth(ym);
+  const total = rows.reduce((a, r) => a + r.mins, 0), worked = rows.filter((r) => r.rec?.time_in).length;
   const prev = U.addDays(`${ym}-01`, -1).slice(0, 7);
   return (
     <div className="card cal">
@@ -65,10 +66,11 @@ export function StaffCalendar({ ym, rows, today }: { ym: string; rows: DayRow[];
         <span className="cal-nav">
           <Link href={`/app?cal=${prev}`} aria-label="Previous month">‹</Link>
           {ym !== cur && <Link href="/app" className="cal-today">Today</Link>}
+          {next <= maxMonth(cur) && <Link href={`/app?cal=${next}`} aria-label="Next month">›</Link>}
         </span>
       </div>
-      <div className="cal-months"><Month ym={ym} by={by} today={today} /><Month ym={second} by={by} today={today} /></div>
-      <div className="cal-foot"><span><i className="work" /> Worked</span><span><i className="absent" /> Absent</span><b>{worked} day{worked === 1 ? '' : 's'} · {U.hrs(total)} hrs in these months</b></div>
+      <div className="cal-months"><Month ym={ym} by={by} today={today} /></div>
+      <div className="cal-foot"><span><i className="work" /> Worked</span><span><i className="absent" /> Absent</span><b>{worked} day{worked === 1 ? '' : 's'} · {U.hrs(total)} hrs this month</b></div>
     </div>
   );
 }

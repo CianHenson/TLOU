@@ -842,3 +842,13 @@ dl.pay-kv{grid-template-columns:140px 1fr;margin:0 0 14px}
 
 
 .ann-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 2px}
+
+.cal-months{grid-template-columns:1fr}
+.cal .cal-d{height:40px}
+
+/* Staff dashboard: compact enough to fit one screen at 100% zoom */
+.cal .cal-d{height:34px}
+.cal .cal-head{margin-bottom:4px}
+.cal .cal-foot{margin-top:8px}
+.dcal .card{padding:14px 18px}
+.dash-main>.grid.dcal{margin-bottom:0}
