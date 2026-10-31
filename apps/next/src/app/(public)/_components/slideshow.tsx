@@ -11,7 +11,7 @@ const SLIDES: Slide[] = [
   { src: '/slides/hilux.png', name: 'Toyota Hilux', kind: 'Pickup rental' },
   { src: '/slides/mirage.webp', name: 'Mitsubishi Mirage G4', kind: 'Car rental' },
 ];
-const MS = 5000;
+const MS = 3000;
 const N = SLIDES.length;
 
 /**

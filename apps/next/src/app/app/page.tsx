@@ -4,15 +4,17 @@ import { db } from '@/lib/db';
 import * as B from '@/lib/biz';
 import * as U from '@/lib/util';
 import { flat } from '@/lib/list';
-import { counts as getCounts, ownerDashboard, period, staffDashboard } from '@/lib/queries/owner';
+import { counts as getCounts, ownerDashboard, period } from '@/lib/queries/owner';
 import { airfareMonthly, airfareSummary, needsCheckin } from '@/lib/queries/airfare';
-import { Page, Stat, Stats } from '@/components/ui';
+import { Page } from '@/components/ui';
 import { ClockCard } from '@/components/clockcard';
 import { DateRangeFilter } from '@/components/list-filters';
 import { OwnerCharts } from '@/components/owner-charts';
 import { AirfareTrend, AttendanceDonut, MoneyTrend, Panel } from '@/components/dash-charts';
 import { AnnouncementCard } from '@/components/announcement-card';
-import { announcementHistory, getAnnouncement } from '@/lib/queries/announcement';
+import { announcementHistory, getAnnouncements } from '@/lib/queries/announcement';
+import { StaffCalendar } from '@/components/staff-calendar';
+import { LEAVE_BADGE } from '@/lib/types';
 
 export const metadata = { title: 'Dashboard' };
 
@@ -22,35 +24,34 @@ export default async function Dashboard(props: PageProps<'/app'>) {
   const rec = (await db.get('SELECT * FROM attendance WHERE user_id=? AND day=?', [me.id, U.today()])) ?? null;
   const mins = B.workedMin(me, rec);
   const counts = await getCounts();
-  const [ann, annLog] = await Promise.all([getAnnouncement(), announcementHistory()]);
-  const hello = <AnnouncementCard a={ann} history={annLog} />;
+  const [ann, annLog] = await Promise.all([getAnnouncements(), announcementHistory()]);
+  const hello = <AnnouncementCard pinned={ann.pinned} regular={ann.regular} history={annLog} owner={isOwner(user)} />;
   const clock = <ClockCard name={me.name} rec={rec} mins={mins} bar />;
 
   if (!isOwner(user)) {
-    const [{ mine, newest }, soon] = await Promise.all([staffDashboard(me), needsCheckin(48)]);
+    const cal = String(flat(await props.searchParams).cal ?? '');
+    const ym = /^\d{4}-(0[1-9]|1[0-2])$/.test(cal) && cal <= U.today().slice(0, 7) ? cal : U.today().slice(0, 7);
+    const [days, requests] = await Promise.all([
+      B.daily(me, ...U.monthRange(ym)),
+      db.all('SELECT id, kind, from_day, to_day, status, decline_reason FROM leave_requests WHERE user_id=? ORDER BY created_at DESC LIMIT 6', [me.id]),
+    ]);
+    const span = (a: string, b: string) => (a === b ? U.longDate(a) : `${U.longDate(a)} – ${U.longDate(b)}`);
     return (
       <Page title="Dashboard">
         <div className="dash"><div className="dash-main">
         {hello}
         {clock}
-        <Stats>
-          <Stat icon="✈️" n={soon.length} label="Flights needing check-in (48 h)" tone={soon.length ? 'neg' : undefined} href="/app/airfare" />
-          <Stat icon="📝" n={counts.pending} label="Pending requests" href="/app/requests?status=Pending+Review" />
-          <Stat icon="📂" n={counts.open_requests} label="Open requests" href="/app/requests?status=open" />
-          <Stat icon="✅" n={counts.confirmed} label="Confirmed bookings" href="/app/bookings?status=Confirmed" />
-          <Stat icon="👥" n={counts.customers} label="Customers" href="/app/customers" />
-        </Stats>
-        <div className="grid g2">
-          <div className="card"><h3>New requests awaiting review</h3>
-            {!newest.length && <p className="muted">Nothing pending. 🎉</p>}
-            <ul className="timeline">{newest.map((r) => <li key={r.id}><Link href={`/app/requests/${r.id}`}>{r.ref}</Link> · {r.customer}<div className="small muted">{r.service_type} · {r.created_at.slice(0, 16)}</div></li>)}</ul>
-          </div>
-          <div className="card"><h3>My open requests</h3>
-            {!mine.length && <p className="muted">No open requests assigned to you.</p>}
-            <ul className="timeline">{mine.map((r) => <li key={r.id}><Link href={`/app/requests/${r.id}`}>{r.ref}</Link> · {r.customer} <span className="badge">{r.status}</span></li>)}</ul>
+        <div className="grid g2 dcal">
+          <StaffCalendar ym={ym} rows={days} today={U.today()} />
+          <div className="card reqcard"><h3>My requests</h3>
+            {requests.length ? <ul className="reqlist">{requests.map((r) => (
+              <li key={r.id}><div><strong>{r.kind}</strong><div className="small muted">{span(r.from_day, r.to_day)}</div>
+                {r.status === 'Declined' && r.decline_reason && <div className="small">Reason: {r.decline_reason}</div>}</div>
+                <span className={`badge ${LEAVE_BADGE[r.status] || ''}`}>{r.status}</span></li>
+            ))}</ul> : <p className="small muted">You have not made any requests yet.</p>}
+            <p className="small" style={{ marginBottom: 0 }}><Link href="/app/attendance">View all in My Attendance →</Link></p>
           </div>
         </div>
-        <div className="row"><Link className="btn" href="/app/requests/new">Register a walk-in / phone request</Link> <Link className="btn ghost" href="/app/customers/new">New customer</Link> <Link className="btn ghost" href="/app/bookings/new">New booking</Link></div>
         </div></div>
       </Page>
     );
@@ -80,10 +81,10 @@ export default async function Dashboard(props: PageProps<'/app'>) {
       {clock}
 
       <div className="kpis">
-        <Link className="kpi" href={`/app/finance?${rng}`}><div className="l">Booking sales</div><div className="n">{U.peso(f.booking_sales)}</div><div className="s">{U.peso(f.collected)} collected</div></Link>
+        <Link className="kpi" href="/app/finance-monitor"><div className="l">Booking sales</div><div className="n">{U.peso(f.booking_sales)}</div><div className="s">{U.peso(f.collected)} collected</div></Link>
         <Link className="kpi" href={`/app/airfare?${rng}`}><div className="l">Airfare collected</div><div className="n">{U.peso(air.total)}</div><div className="s">{air.n} tickets · {air.pax} pax</div></Link>
         <Link className={`kpi ${air.income >= 0 ? 'pos' : 'neg'}`} href={`/app/finance-monitor?${rng}`}><div className="l">Agency income</div><div className="n">{U.peso(air.income)}</div><div className="s">Service charge − card fees</div></Link>
-        <Link className={`kpi ${f.net >= 0 ? 'pos' : 'neg'}`} href={`/app/finance?${rng}`}><div className="l">Net operating result</div><div className="n">{U.peso(f.net)}</div><div className="s">{U.peso(f.expenses)} expenses</div></Link>
+        <Link className={`kpi ${f.net >= 0 ? 'pos' : 'neg'}`} href="/app/finance-monitor"><div className="l">Net operating result</div><div className="n">{U.peso(f.net)}</div><div className="s">{U.peso(f.expenses)} expenses</div></Link>
       </div>
 
       <div className="attn" aria-label="Needs attention">

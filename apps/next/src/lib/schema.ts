@@ -103,6 +103,11 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS announcements (
     id INT AUTO_INCREMENT PRIMARY KEY, body TEXT NOT NULL, user_id INT NULL, user_name VARCHAR(120), at VARCHAR(19) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL)`,
+  // Staff requests to correct one attendance day (changes = JSON [{field,value}]); the owner / admin approves (applies it) or declines with a reason.
+  `CREATE TABLE IF NOT EXISTS attendance_correction_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, day CHAR(10) NOT NULL, changes TEXT NOT NULL, reason TEXT NOT NULL,
+    status VARCHAR(10) NOT NULL DEFAULT 'Pending', decline_reason TEXT NULL, created_at VARCHAR(19) NOT NULL, reviewed_by INT NULL, reviewed_at VARCHAR(19) NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id))`,
 ];
 
 const DEFAULT_SETTINGS:Record<string, string> = {
@@ -157,6 +162,7 @@ export async function ensureSchema(d: Db) {
       first_name = CASE WHEN LOCATE(' ', TRIM(name)) = 0 THEN TRIM(name) ELSE TRIM(LEFT(TRIM(name), CHAR_LENGTH(TRIM(name)) - CHAR_LENGTH(SUBSTRING_INDEX(TRIM(name), ' ', -1)))) END,
       last_name = CASE WHEN LOCATE(' ', TRIM(name)) = 0 THEN '' ELSE SUBSTRING_INDEX(TRIM(name), ' ', -1) END`);
   }
+  if (!(await hasCol('announcements', 'pinned'))) await d.run('ALTER TABLE announcements ADD COLUMN pinned TINYINT NOT NULL DEFAULT 0');
   if (!(await hasCol('leaves', 'request_id'))) await d.run('ALTER TABLE leaves ADD COLUMN request_id INT NULL');
   // First run with the employees table: every existing Staff account becomes an employee (rate 0, to be set by the owner),
   // so attendance monitoring keeps covering the people it covered before.

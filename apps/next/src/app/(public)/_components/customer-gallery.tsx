@@ -23,7 +23,7 @@ export function CustomerGallery({ photos }: { photos: string[] }) {
   return <Gallery photos={photos} />;
 }
 
-const MS = 5000;
+const MS = 3000;
 
 /** Auto-advances every MS, with the same three-bar control as the rental slideshow (previous / current, filling / next). */
 function Gallery({ photos }: { photos: string[] }) {
