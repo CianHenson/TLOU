@@ -76,7 +76,8 @@ function UserMenu({ userName, roleLabel }: { userName: string; roleLabel: string
   // re-anchor position:fixed to itself and its scrolling would clip the menu.
   const toggle = () => {
     const r = btn.current!.getBoundingClientRect();
-    setPos(pos ? null : { left: r.left, bottom: window.innerHeight - r.top + 8 });
+    const left = Math.max(12, Math.min(r.left, window.innerWidth - 230 - 12));
+    setPos(pos ? null : { left, bottom: window.innerHeight - r.top + 8 });
   };
   return (
     <div className="side-acct">

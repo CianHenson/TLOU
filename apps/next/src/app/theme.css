@@ -63,6 +63,8 @@ section[id]{scroll-margin-top:68px}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
 .svc{border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:8px;transition:transform .18s,box-shadow .18s,border-color .18s}.svc:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(40,30,10,.12);border-color:#dcc27a}
 .svc h3{margin:0}.svc p{margin:0 0 8px}.svc .ic{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;font-size:1.5rem;background:linear-gradient(135deg,#fbf0cf,#f1d98f);margin-bottom:6px}.svc .btn{margin-top:auto;align-self:flex-start}
+.cards.why{grid-template-columns:repeat(3,1fr);max-width:960px;margin-inline:auto}.why .svc{text-align:center}
+@media(max-width:820px){.cards.why{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.cards.why{grid-template-columns:1fr}}
 .why .svc{background:transparent;box-shadow:none;border:0;border-top:2px solid var(--brand);border-radius:0;padding:18px 4px 0}.why .svc:hover{transform:none;box-shadow:none}
 /* Service cards ((public)/_components/service-card.tsx): dark icon tile with a gold line icon, running number, gold
    accent line that grows on hover. Three per row on desktop, two on tablets, one on phones. */
@@ -214,3 +216,11 @@ body.pub{display:flex;flex-direction:column}body.pub>main{flex:1 0 auto}
 @supports not (backdrop-filter:blur(1px)){.nav-glass{background:#fff}.nav-scrim{background:rgba(20,15,6,.6)}}
 @keyframes navfade{from{opacity:0}to{opacity:1}}@keyframes navpop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
 @media (min-width:901px){.nav-overlay{display:none}}
+
+/* Touch / small screens: bigger tap targets on the public site and login (hit area only; the look stays). */
+@media (max-width:900px),(pointer:coarse){
+  .pub .btn,.login .btn,.pub input:not([type=checkbox]):not([type=radio]),.pub textarea,.pub select{min-height:44px}
+  .pub input:not([type=checkbox]):not([type=radio]),.pub textarea,.pub select{font-size:16px}
+  .ss-seg{height:28px;padding:11px 0;background-clip:content-box}
+  .nav a,.flinks a,.footer a{display:inline-flex;align-items:center;min-height:40px}
+}

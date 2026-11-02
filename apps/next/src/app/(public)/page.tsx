@@ -80,7 +80,7 @@ export default async function Home() {
 
       {S.whyList.length > 0 && (
         <section className="section"><div className="wrap">
-          <div className="section-head"><span className="eyebrow">Bakit mag-book sa travel agency?</span><h2>Guidance ka rin lalo na kung may tanong o aberya sa booking.</h2></div>
+          <div className="section-head" style={{ marginInline: 'auto', textAlign: 'center' }}><span className="eyebrow">Bakit mag-book sa travel agency?</span><h2>Guidance ka rin lalo na kung may tanong o aberya sa booking.</h2></div>
           <div className="cards why">
             {S.whyList.map((w) => <div className="svc" key={w.t}><h3>{w.t}</h3><p className="muted">{w.d}</p></div>)}
           </div>

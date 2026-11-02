@@ -197,10 +197,6 @@ try {
   }
 
   // ---------- website services (up to 10) and contact messages (10) ----------
-  const have = (await run('SELECT COUNT(*) n FROM services'))[0].n;
-  const extra = [['Visa Assistance', 'Other travel service', 'Guidance on visa requirements and document checklists.', '🛂'], ['Travel Insurance', 'Other travel service', 'Coverage for medical, baggage and trip delays.', '🛡️'],
-    ['Van and Car Rental', 'Other travel service', 'Airport transfers and island tours with a driver.', '🚐'], ['Island Hopping Tours', 'Travel package', 'Honda Bay, Underground River and El Nido tours.', '🏝️']];
-  for (const [i, s] of extra.entries()) if (have + i < 10) await run('INSERT INTO services (name,type,description,icon,sort) VALUES (?,?,?,?,?)', [...s, have + i]);
   const M = [
     ['Eduardo Manalo', 'Hello, how much is a flight from Puerto Princesa to Manila on 14 November?'], ['Teresita Gonzales', 'Can you help me book a hotel in El Nido for 5 to 8 December?'],
     ['Ricardo Alvarez', 'Do you offer package tours for a group of 15?'], ['Lorna Fernandez', 'I need to rebook my Cebu flight, who should I contact?'],

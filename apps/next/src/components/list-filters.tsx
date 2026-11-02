@@ -81,7 +81,7 @@ export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitl
             allLabel={String(Array.isArray(d.options[0]) ? d.options[0][1] : d.options[0])} options={d.options.slice(1).map((o) => (Array.isArray(o) ? o[0] : o))} />
         : <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />;
         return d.hideOnPhone ? <span key={d.key} className="tt-phone-hide">{el}</span> : el; })}
-      {exportHref && <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => confirmExport(e, exportHref, exportNote)}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>}
+      {exportHref && <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => confirmExport(e, exportHref, exportNote)}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" /><span className="tt-export-lbl">Export</span></a>}
       {trail && <span className={exportHref ? undefined : 'tt-trail'}>{trail}</span>}
     </form>
   );

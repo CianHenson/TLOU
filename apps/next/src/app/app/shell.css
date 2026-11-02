@@ -223,7 +223,6 @@
   .dfill .ddonut .dchart{flex:1 1 0;min-height:150px}
   .dfill .ddonut .dlegend{padding:12px 0 6px;border-top:1px solid var(--line);gap:8px 18px}
 }
-@media (max-width:900px){.tw-card>.tw.tw-fixed{height:60vh}}
 .tw-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
 .tw-tools :is(input,select){height:38px;box-sizing:border-box;padding:.4em .7em;font-size:.9rem}
 .tw-tools select{width:auto;max-width:220px;cursor:pointer}
@@ -924,10 +923,10 @@ a.cal-d:not(.work):hover{background:rgba(232,195,94,.18)}
 
   .mh-right:is(:has(.mh-actions-list>:nth-child(2)),:has(.mh-tools>*):has(.mh-actions-list>*)){
     display:block;position:relative;flex:0 0 auto;margin-left:auto;order:1;
-    & .mh-more{display:inline-grid;place-items:center;width:38px;height:38px;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:transparent;color:var(--side-ink);cursor:pointer}
-    & .mh-more:hover,&.open .mh-more{background:var(--side-hover)}
+    & .mh-more{display:inline-grid;place-items:center;width:38px;height:38px;padding:0;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);cursor:pointer}
+    & .mh-more:hover,&.open .mh-more{background:rgba(199,154,43,.12)}
     & .mh-panel{display:none}
-    &.open .mh-panel{display:flex;flex-direction:column;gap:10px;position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:min(300px,calc(100vw - 48px));max-height:calc(100vh - 140px);overflow-y:auto;padding:10px;border-radius:14px;background:#1f1a0f;border:1px solid var(--side-bd);box-shadow:0 18px 40px rgba(20,14,5,.4);color-scheme:dark}
+    &.open .mh-panel{display:flex;flex-direction:column;gap:10px;position:absolute;right:0;top:calc(100% + 8px);z-index:30;width:min(300px,calc(100vw - 48px));max-height:calc(100vh - 140px);overflow-y:auto;padding:10px;border-radius:14px;background:var(--card);color:var(--ink);border:1px solid var(--line);box-shadow:0 18px 40px rgba(40,30,10,.18)}
     /* while the date menu is open, the other buttons step aside */
     &.date-open .mh-actions{display:none}
     & .mh-tools{flex:none;width:100%;margin-left:0;order:0}
@@ -938,14 +937,14 @@ a.cal-d:not(.work):hover{background:rgba(232,195,94,.18)}
     & .mh-actions-list .icon-btn::after{content:attr(aria-label);font-weight:700;font-size:.9rem}
     & .af-bar{justify-content:flex-start}
     & .af-date,& .af-date-btn{width:100%}
-    & .af-date-btn{height:38px;padding:0 10px 0 12px;justify-content:space-between;gap:8px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff}
+    & .af-date-btn{height:38px;padding:0 10px 0 12px;justify-content:space-between;gap:8px;background:var(--card);border-color:var(--line);color:var(--ink)}
     & .af-date-btn>span{display:inline}
     & .af-date-btn>svg:last-child{display:inline}
     /* the date menu and its custom-range panel open inline (the side flyout would run off the screen) */
-    & .af-menu,& .af-custom{position:static;width:auto;margin-top:8px;box-shadow:none;background:transparent;border:0;padding:0;--side-ink:#f1e7c8;--side-mut:#bfae7c;--side-bd:rgba(255,255,255,.14);--side-hover:rgba(255,255,255,.1);color:var(--side-ink)}
-    & .af-custom{margin-top:6px;padding:10px;border:1px solid rgba(255,255,255,.14);border-radius:12px}
-    & .af-custom-title{color:#fff}
-    & .af-custom input{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+    & .af-menu,& .af-custom{position:static;width:auto;margin-top:8px;box-shadow:none;background:transparent;border:0;padding:0;--side-ink:var(--ink);--side-mut:var(--mut);--side-bd:var(--line);--side-hover:rgba(199,154,43,.12);color:var(--ink)}
+    & .af-custom{margin-top:6px;padding:10px;border:1px solid var(--line);border-radius:12px}
+    & .af-custom-title{color:var(--ink)}
+    & .af-custom input{background:var(--card);border-color:var(--line);color:var(--ink)}
     & .af-has-side::before{content:"\203A";display:inline-block;transform:rotate(90deg)}
   }
   /* The custom-range flyout opens to the left of the date menu: on a phone it goes inline instead (also where the date icon stays in the header). */
@@ -953,4 +952,66 @@ a.cal-d:not(.work):hover{background:rgba(232,195,94,.18)}
   .af-menu{width:min(280px,calc(100vw - 32px))}
   /* Attendance & Payroll: the Employee and Status filters are left out on phones */
   .tt-phone-hide{display:none}
+}
+
+/* Touch / small screens: comfortable tap targets (44px where space allows) and 16px form text so iOS does not zoom the page on focus. Desktop mouse layout is untouched. */
+@media (max-width:900px),(pointer:coarse){
+  .shell input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),.shell select,.shell textarea,.modal input:not([type=checkbox]):not([type=radio]),.modal select,.modal textarea{font-size:16px;min-height:42px}
+  .shell textarea{min-height:84px}
+  .side-btn{width:40px;height:40px}
+  .icon-btn{width:44px;height:44px}
+  .mhead .af-date-btn,.mhead .btn.menu{width:44px;height:44px}
+  .dd-btn,.af-date-btn,.mh-more{min-height:42px}
+  .dd-btn{height:42px}
+  .peek-btn{min-height:40px;padding:.3em .7em}
+  .shell .btn,.modal .btn{min-height:42px}
+  .shell input[type=checkbox],.shell input[type=radio]{width:20px;height:20px}
+}
+
+/* Phones / tablets: the profile menu is portaled into .shell, so it must sit above the slide-in sidebar (z-index 60) and its dimmed backdrop. */
+@media (max-width:900px){
+  .shell .user-menu{z-index:70;width:min(230px,calc(100vw - 24px))}
+}
+
+/* Phones: table toolbar - search on its own row, the dropdowns share the next row evenly (labels truncate), Export shrinks to an icon button. */
+@media (max-width:700px){
+  .tw-tools{gap:8px}
+  .tw-tools>.dd{flex:1 1 0;min-width:0;display:block}
+  .tw-tools>.dd .dd-btn{min-width:0}
+  .tw-tools>.dd .dd-btn>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
+  .tw-tools>.tt-phone-hide{display:none}
+  .tw-tools .tt-export{flex:none;margin-left:0;width:44px;height:42px;padding:0;justify-content:center;gap:0}
+  .tw-tools .tt-export-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
+
+/* Phones / tablets: like desktop, a page with a table card fills the screen - the card stretches to the bottom edge and only its rows scroll. */
+@media (max-width:900px){
+  .main:has(>.tw-card){display:flex;flex-direction:column;height:100vh;height:100dvh;box-sizing:border-box;padding-bottom:16px}
+  .main:has(>.tw-card)>*{flex:none}
+  .main:has(>.tw-card)>.tw-card{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .tw-card>.tw.tw-fixed{flex:1 1 auto;height:auto;min-height:0}
+  .main:has(>.tw-card)>:is(.pager,p:last-child){margin:10px 0 0}
+}
+/* Phones: an empty table must not keep its 720px scrolling width, or the "nothing here" message centres off-screen. */
+@media (max-width:700px){
+  .tw table:has(td.empty){min-width:0;width:100%}
+  .tw table:has(td.empty) thead{display:none}
+  td.empty{white-space:normal;text-align:center}
+}
+
+/* Phones: the month picker inside the folded header panel follows the theme (light panel in light mode, dark in dark mode). */
+@media (max-width:700px){
+  .mh-panel .af-menu.mp{min-width:0;padding:4px 0 0}
+}
+
+/* My schedule calendar: columns can shrink below their content, so all seven days always fit the modal; compact cells on phones. */
+.sch-grid{grid-template-columns:repeat(7,minmax(0,1fr))}
+.sch-d{min-width:0}
+@media (max-width:600px){
+  .sch-grid{gap:4px}
+  .sch-grid .cal-dow{font-size:.6rem;letter-spacing:.02em}
+  .sch-d,.sch-d.sch-work,.sch-d.sch-off{border:0}
+  .sch-d{height:auto;min-height:54px;padding:4px 0;gap:2px;border-radius:8px;font-size:.82rem;overflow:hidden}
+  .sch-d span{font-size:.54rem;line-height:1.2;white-space:nowrap}
+  .sch-chips{gap:8px}.sch-chips>div{padding:8px 12px}
 }
