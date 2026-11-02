@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Modal } from './modal';
 import { ApiForm, Field, Submit, useFormState } from './form';
 
-export interface ProfileValues { first_name: string; last_name: string; email: string; emp_no: string }
+export interface ProfileValues { first_name: string; last_name: string; email: string; emp_no: string; canSign?: boolean; signature?: boolean }
 
 /** Window event that opens the My Profile dialog (the sidebar user menu sends it). */
 export const PROFILE_EVT = 'profile:open';
@@ -26,6 +26,13 @@ export function ProfileModal({ me }: { me: ProfileValues }) {
             <Field name="first_name" label="First name *" defaultValue={me.first_name} attrs={{ required: true, maxLength: 60, autoComplete: 'off' }} />
             <Field name="last_name" label="Last name *" defaultValue={me.last_name} attrs={{ required: true, maxLength: 60, autoComplete: 'off' }} />
             <Field name="email" label="Email (used to log in) *" type="email" defaultValue={me.email} attrs={{ required: true, maxLength: 160, autoComplete: 'off' }} />
+            {me.canSign && (
+              <div className="field"><label htmlFor="pf-sig">E-signature (PNG or JPG)</label>
+                {me.signature && <div className="sig-prev"><img src="/api/files/signature/me" alt="Your current e-signature" /><label style={{ fontWeight: 400 }}><input type="checkbox" name="remove_signature" /> Remove signature</label></div>}
+                <input id="pf-sig" type="file" name="signature" accept=".png,.jpg,.jpeg" />
+                <SigError />
+                <div className="small muted">Printed on the payslips you generate. A transparent PNG looks best; max 5 MB.</div></div>
+            )}
             <div className="row"><Submit>Save</Submit> <button type="button" className="btn ghost" onClick={close}>Cancel</button> <button type="button" className="btn ghost" aria-haspopup="dialog" onClick={() => setPw(true)}>Change password</button></div>
           </ApiForm>
         )}
@@ -45,6 +52,11 @@ export function ProfileModal({ me }: { me: ProfileValues }) {
       )}
     </>
   );
+}
+
+function SigError() {
+  const e = useFormState().errors.signature;
+  return e ? <div className="err" role="alert">{e}</div> : null;
 }
 
 /** Password input with a show/hide eye button; shows the server-side error for `name` like <Field>. */

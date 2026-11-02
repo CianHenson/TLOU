@@ -5,8 +5,8 @@ import path from 'node:path';
 import { rawPool } from './db';
 import { BACKUP_DIR } from './files';
 
-const TABLES = ['settings', 'services', 'users', 'customers', 'requests', 'request_log', 'notes', 'bookings', 'payments', 'expenses',
-  'documents', 'attendance', 'attendance_corrections', 'leaves', 'audit_logs', 'messages'];
+const TABLES = ['settings', 'services', 'users', 'customers', 'requests', 'request_log', 'notes', 'expenses',
+  'attendance', 'attendance_corrections', 'leaves', 'audit_logs', 'messages', 'trash'];
 
 export async function createBackup(label = 'auto') {
   const pool = await rawPool();

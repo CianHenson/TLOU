@@ -15,8 +15,8 @@ export const POST = api(async (req) => {
   const hash = await hashPassword(pw);
   const id = await tx(async (d) => {
     // Schedule columns (shift, grace, break, workdays) keep their defaults; they are set from attendance, not here.
-    const i = (await d.run(`INSERT INTO users (name,first_name,last_name,email,username,password_hash,role,designation,active,can_expenses,must_change_pw,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,1,?)`,
-      [e.name, e.first_name, e.last_name, e.email, e.email, hash, e.role, e.designation || null, e.active, e.can_expenses, now()])).id;
+    const i = (await d.run(`INSERT INTO users (name,first_name,last_name,email,username,password_hash,role,designation,active,can_expenses,can_messages,must_change_pw,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,1,?)`,
+      [e.name, e.first_name, e.last_name, e.email, e.email, hash, e.role, e.designation || null, e.active, e.can_expenses, e.can_messages, now()])).id;
     await d.run('UPDATE users SET emp_no=? WHERE id=?', ['EMP-' + String(i).padStart(4, '0'), i]);
     // Staff are attendance employees from the start; without this row they could not time in or request a day off.
     if (e.role === 'employee') await d.run('INSERT IGNORE INTO employees (user_id,hourly_rate,active,created_at) VALUES (?,0,?,?)', [i, e.active, now()]);

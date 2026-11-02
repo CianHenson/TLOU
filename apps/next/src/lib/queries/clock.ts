@@ -2,7 +2,7 @@
 // recorded once and only after the previous one - hiding or disabling the buttons is just a convenience for the user.
 import 'server-only';
 import { db } from '../db';
-import { audit, attStage } from '../biz';
+import { audit, attStage, settings } from '../biz';
 import { fail, ok, clientIp } from '../http';
 import { hm12, now } from '../util';
 import { employeeOf } from './payroll';
@@ -18,9 +18,36 @@ const STEPS: Record<Step, { from: string; sets: string; where: string; done: str
     msg: (t) => `Time-out recorded at ${t}. Your attendance for today is complete.` },
 };
 
-/** Staff need an active employee record (owners / admins may clock but are never counted in attendance or payroll). */
+/** Staff need an active employee record (the owner and admins may clock; they are counted in attendance and payroll only once added as employees). */
 export async function canClock(user: SessionUser) {
   return user.role !== 'employee' || !!(await employeeOf(user.id));
+}
+
+const MAX_ACCURACY_M = 100; // a reading less precise than this cannot prove the person is at the office
+
+/** Great-circle distance in metres between two coordinates (haversine). */
+function distanceM(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const r = Math.PI / 180, a = Math.sin(((lat2 - lat1) * r) / 2) ** 2 + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lng2 - lng1) * r) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Time In only: the device location sent by the browser must be within the allowed radius of the office (System Settings).
+ * Blank office coordinates turn the check off. Returns an error message, or the location to save with the time-in.
+ */
+export async function checkOffice(b: Record<string, unknown>): Promise<{ error: string } | { lat: number; lng: number; dist: number } | null> {
+  const S = await settings();
+  const oLat = parseFloat(String(S.office_lat ?? '')), oLng = parseFloat(String(S.office_lng ?? ''));
+  if (!Number.isFinite(oLat) || !Number.isFinite(oLng)) return null;
+  const radius = Math.max(10, parseFloat(String(S.office_radius ?? '')) || 150);
+  const lat = parseFloat(String(b.lat ?? '')), lng = parseFloat(String(b.lng ?? '')), acc = parseFloat(String(b.acc ?? ''));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+    return { error: 'Location is required to time in. Please allow location access for this site in your browser, then try again.' };
+  if (Number.isFinite(acc) && acc > MAX_ACCURACY_M)
+    return { error: `Your device location is not accurate enough (±${Math.round(acc)} m). Turn on GPS / precise location and try again.` };
+  const dist = Math.round(distanceM(lat, lng, oLat, oLng));
+  if (dist > radius) return { error: `You can only time in within the allowed radius of your office location (${Math.round(radius)} m). You are currently about ${dist} m away.` };
+  return { lat, lng, dist };
 }
 
 /** Records one step for today using the server clock. Returns the JSON response for the route. */

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { AppNav, SideTools, type NavItem } from '@/components/app-nav';
 import { ProfileModal } from '@/components/profile-modal';
+import { ContextMenuFit } from '@/components/context-menu-fit';
 import { db } from '@/lib/db';
 import { ConfirmHost } from '@/components/confirm';
 import { currentUser, isOwner } from '@/lib/auth';
@@ -18,18 +19,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const me = await currentUser();
   if (!me) redirect('/login');
   const S = await settings();
-  const p = (await db.get('SELECT first_name,last_name,email,emp_no,name FROM users WHERE id=?', [me.id]))!;
+  const p = (await db.get('SELECT first_name,last_name,email,emp_no,name,signature FROM users WHERE id=?', [me.id]))!;
   const [fn, ...rest] = String(p.name || '').split(' ');
-  const profile = { first_name: p.first_name ?? fn ?? '', last_name: p.last_name ?? rest.join(' '), email: p.email ?? '', emp_no: p.emp_no ?? '' };
+  const profile = { first_name: p.first_name ?? fn ?? '', last_name: p.last_name ?? rest.join(' '), email: p.email ?? '', emp_no: p.emp_no ?? '', canSign: isOwner(me), signature: !!p.signature };
   const owner = isOwner(me);
   const nav: NavItem[] = owner ? [
     { label: 'Dashboard', href: '/app' },
-    { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'Airlines', href: '/app/airlines' }, { label: 'Transactions & Payments', href: '/app/payments' }, { label: 'Expenses', href: '/app/expenses' }, { label: 'Monitoring Finances', href: '/app/finance-monitor' },
+    { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'Airlines', href: '/app/airlines' }, { label: 'Monitoring Finances', href: '/app/expenses' },
     { group: 'People' }, { label: 'Attendance & Payroll', href: '/app/attendance-monitor' }, { label: 'Payroll Deductions', href: '/app/deductions' }, { label: 'User Management', href: '/app/employees' },
-    { group: 'System' }, { label: 'Audit Logs', href: '/app/audit' },
+    { group: 'System' }, { label: 'Messages', href: '/app/messages' }, { label: 'Audit Logs', href: '/app/audit' }, { label: 'Delete Archive', href: '/app/delete-archive' },
   ] : [
-    { label: 'Dashboard', href: '/app' }, { label: 'Airfare Sales', href: '/app/airfare' }, { label: 'My Attendance', href: '/app/attendance' }, { label: 'Customer Management', href: '/app/customers' },
-    { label: 'Transactions & Payments', href: '/app/payments' }, ...(me.can_expenses ? [{ label: 'Expenses', href: '/app/expenses' }] : []),
+    { label: 'Dashboard', href: '/app' },
+    { group: 'Sales & Expenses' }, { label: 'Airfare Sales', href: '/app/airfare' },
+    ...(me.can_expenses ? [{ label: 'Monitoring Finances', href: '/app/expenses' }] : []),
+    { group: 'People' }, { label: 'My Attendance', href: '/app/attendance' },
+    { group: 'System' }, ...(me.can_messages ? [{ label: 'Messages', href: '/app/messages' }] : []), { label: 'Trash', href: '/app/trash' },
   ];
   const jar = await cookies();
   const theme = jar.get('tcaps_theme')?.value === 'dark' ? 'dark' : 'light';
@@ -43,8 +47,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <AppNav items={nav} userName={me.name} roleLabel={ROLE_LABELS[me.role] ?? me.role} />
       </aside>
       <div className="main">{children}</div>
-      <ProfileModal key={`${p.email}|${p.name}|${p.email}`} me={profile} />
+      <ProfileModal key={`${p.email}|${p.name}|${p.signature ?? ''}`} me={profile} />
       <ConfirmHost />
+      <ContextMenuFit />
     </div>
   );
 }

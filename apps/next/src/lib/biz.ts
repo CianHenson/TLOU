@@ -37,60 +37,6 @@ export async function audit(who: { user?: Pick<SessionUser, 'id' | 'username'> |
       typeof detail === 'string' ? detail : JSON.stringify(detail ?? {}), who?.ip ?? null]);
 }
 
-// ---------- bookings / payments ----------
-export const total = (b: { selling_price: number; service_fee: number; discount: number }) => b.selling_price + b.service_fee - b.discount; // total payable
-export const payStatus = (tot: number, paid: number) => (paid <= 0 ? 'Unpaid' : paid < tot ? 'Partially Paid' : paid === tot ? 'Paid' : 'Overpaid');
-
-/** Valid payments minus valid refunds, per booking `b` (use inside a query that aliases bookings as b). */
-export const PAID_SQL = `COALESCE((SELECT SUM(CASE p.kind WHEN 'Payment' THEN p.amount ELSE -p.amount END)
-  FROM payments p WHERE p.booking_id=b.id AND p.status='Valid'),0)`;
-
-export function decorate(b: Row): Row {
-  b.total = total(b as never);
-  b.balance = b.status === 'Cancelled' ? 0 : Math.max(0, b.total - b.paid);
-  b.pay_status = payStatus(b.total, b.paid);
-  b.margin = b.total - b.supplier_cost;
-  return b;
-}
-export const bookingSelect = `SELECT b.*, c.name AS customer, c.code AS customer_code, u.name AS employee, ${PAID_SQL} AS paid
-  FROM bookings b JOIN customers c ON c.id=b.customer_id LEFT JOIN users u ON u.id=b.assigned_to`;
-
-// ---------- finance ----------
-// Accounting assumptions (shown on the Financial Reports page):
-//  * Sales (quoted+confirmed+completed) are by booking date; Cancelled bookings are excluded everywhere.
-//  * Confirmed value = Confirmed + Completed bookings. Supplier cost and margin are recognised on confirmed value only.
-//  * Collections = valid payments less valid refunds, by payment date (cash basis). Reversed payments are ignored.
-//  * Gross booking margin = confirmed value - supplier cost. Net operating result = gross margin - valid expenses.
-//  * Outstanding balance = sum of (total payable - net paid) on Confirmed/Completed bookings, regardless of date range.
-export async function finance(from: string, to: string) {
-  const d = (col: string) => `SUBSTR(${col},1,10) BETWEEN ? AND ?`;
-  const rng = [from, to];
-  const sales = (await db.get(`SELECT
-      COALESCE(SUM(CASE WHEN status!='Cancelled' THEN selling_price+service_fee-discount END),0) AS booking_sales,
-      COALESCE(SUM(CASE WHEN status='Quoted' THEN selling_price+service_fee-discount END),0) AS quoted,
-      COALESCE(SUM(CASE WHEN status IN ('Confirmed','Completed') THEN selling_price+service_fee-discount END),0) AS confirmed,
-      COALESCE(SUM(CASE WHEN status='Completed' THEN selling_price+service_fee-discount END),0) AS completed,
-      COALESCE(SUM(CASE WHEN status='Cancelled' THEN selling_price+service_fee-discount END),0) AS cancelled,
-      COALESCE(SUM(CASE WHEN status IN ('Confirmed','Completed') THEN supplier_cost END),0) AS supplier_costs,
-      COALESCE(SUM(CASE WHEN status IN ('Confirmed','Completed') THEN service_fee END),0) AS fees,
-      COALESCE(SUM(CASE WHEN status IN ('Confirmed','Completed') THEN discount END),0) AS discounts,
-      COUNT(CASE WHEN status='Confirmed' THEN 1 END) AS n_confirmed, COUNT(CASE WHEN status='Completed' THEN 1 END) AS n_completed
-    FROM bookings WHERE ${d('created_at')}`, rng))!;
-  const pay = (await db.get(`SELECT
-      COALESCE(SUM(CASE WHEN kind='Payment' THEN amount END),0) AS received,
-      COALESCE(SUM(CASE WHEN kind='Refund' THEN amount END),0) AS refunds
-    FROM payments WHERE status='Valid' AND ${d('paid_at')}`, rng))!;
-  const expenses = (await db.val(`SELECT COALESCE(SUM(amount),0) FROM expenses WHERE status='Valid' AND ${d('spent_at')}`, rng)) ?? 0;
-  const outstanding = (await db.val(`SELECT COALESCE(SUM(GREATEST(0, (b.selling_price+b.service_fee-b.discount) - ${PAID_SQL})),0)
-    FROM bookings b WHERE b.status IN ('Confirmed','Completed')`)) ?? 0;
-  const collected = pay.received - pay.refunds;
-  const grossMargin = sales.confirmed - sales.supplier_costs;
-  return { ...sales, collected, received: pay.received as number, refunds: pay.refunds as number, expenses, outstanding, grossMargin, net: grossMargin - expenses } as Row & {
-    booking_sales: number; quoted: number; confirmed: number; completed: number; cancelled: number; supplier_costs: number; fees: number; discounts: number;
-    n_confirmed: number; n_completed: number; collected: number; received: number; refunds: number; expenses: number; outstanding: number; grossMargin: number; net: number;
-  };
-}
-
 // ---------- attendance ----------
 export function schedFor(u: Row) {
   return { start: u.sched_start as string, end: u.sched_end as string, grace: u.grace_min as number, brk: u.break_min as number, days: String(u.workdays).split(',').filter(Boolean).map(Number) };

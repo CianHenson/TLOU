@@ -22,11 +22,39 @@ export async function paginate<T = Row>(q: Record<string, string>, sql: string, 
   return { rows, total, page, pages, qs: qs.toString() };
 }
 
-/** Safe ORDER BY from `?sort=&dir=`: `sortClause({ date: 'r.created_at', ... }, 'date', q)` */
-export function sortClause(map: Record<string, string>, def: string, q: Record<string, string>) {
+/** Safe ORDER BY from `?sort=&dir=` (and `?group=`, whose SQL goes first): `sortClause({ date: 'r.created_at', ... }, 'date', q, { status: 'r.status' })` */
+export function sortClause(map: Record<string, string>, def: string, q: Record<string, string>, groups?: Record<string, string>) {
   const col = map[q.sort] || map[def];
   const dir = q.dir === 'asc' ? 'ASC' : 'DESC';
-  return ` ORDER BY ${col} ${dir}, 1 DESC`;
+  const g = groups?.[q.group];
+  return ` ORDER BY ${g ? g + ', ' : ''}${col} ${dir}, 1 DESC`;
+}
+
+/**
+ * ORDER BY for lists sorted from the right-click menu: `?group=` (SQL in `groups`, put first so the rows come out grouped),
+ * then `?sort=&dir=` (SQL in `sorts`), otherwise `fallback` (the list's normal order). Both keys are whitelisted. `tie` follows a chosen sort.
+ */
+export function orderBy(q: Record<string, string>, sorts: Record<string, string>, groups: Record<string, string> | undefined, fallback: string, tie = '') {
+  const parts: string[] = [];
+  const g = groups?.[q.group];
+  if (g) parts.push(g);
+  const s = sorts[q.sort];
+  if (s) { parts.push(`${s} ${q.dir === 'asc' ? 'ASC' : 'DESC'}`); if (tie) parts.push(tie); } else parts.push(fallback);
+  return 'ORDER BY ' + parts.join(', ');
+}
+
+type Key<T> = (r: T) => string | number | null | undefined;
+const cmp = (a: unknown, b: unknown) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' }));
+
+/**
+ * The in-memory version of orderBy, for lists that are built in code rather than by one SQL query (attendance, payroll):
+ * rows grouped by `?group=` first (the group's sortable key; `desc` for newest-first groups), then `?sort=&dir=`.
+ * The sort is stable, so ties keep the list's normal order.
+ */
+export function sortRows<T>(rows: T[], q: Record<string, string>, sorts: Record<string, Key<T>>, groups?: Record<string, { key: Key<T>; desc?: boolean }>): T[] {
+  const g = groups?.[q.group], k = sorts[q.sort], dir = q.dir === 'asc' ? 1 : -1;
+  if (!g && !k) return rows;
+  return [...rows].sort((a, b) => (g ? (g.desc ? -1 : 1) * cmp(g.key(a), g.key(b)) : 0) || (k ? dir * cmp(k(a), k(b)) : 0));
 }
 
 /** Collects WHERE fragments: `const f = where(); f.add('c.name LIKE ?', '%x%')` -> f.sql ('' or 'WHERE ...'), f.p */

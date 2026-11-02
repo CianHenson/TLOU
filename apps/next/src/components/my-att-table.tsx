@@ -7,7 +7,7 @@ import { hm12, hrs, longDate } from '@/lib/util';
 import { ATT_BADGE, ATT_STATUSES, CORR_FIELDS, LEAVE_BADGE } from '@/lib/types';
 import { ApiForm, Field, Submit } from './form';
 import { Dropdown } from './dropdown';
-import { TimeField } from './date-time-picker';
+import { TimePicker } from './date-time-picker';
 import { useRowSelection } from './row-select';
 import { Modal } from './modal';
 import { FootLine } from './ui';
@@ -25,7 +25,7 @@ function Correction({ r, onClose }: { r: MyRow; onClose: () => void }) {
       {(close) => (
         <ApiForm action="/api/attendance/corrections" stay onDone={(d) => { if (d.ok) close(); }}>
           <input type="hidden" name="day" value={r.day} />
-          <p className="small muted" style={{ marginTop: 0 }}>Currently <strong>{r.status}</strong> · in {hm12(r.time_in) || '—'} · break {hm12(r.break_out) || '—'}–{hm12(r.break_in) || '—'} · out {hm12(r.time_out) || '—'}. Choose what to correct; the owner or an admin will review it.</p>
+          <p className="small muted" style={{ marginTop: 0 }}>Choose what to correct. The owner or an admin will review your request.</p>
           {lines.map((l) => (
             <div className="corr-line" key={l.id}>
               <div className="field"><label>Correct *</label>
@@ -34,11 +34,11 @@ function Correction({ r, onClose }: { r: MyRow; onClose: () => void }) {
               <div className="field"><label>{l.field === 'status' ? 'Should be *' : 'Correct time *'}</label>
                 {l.field === 'status'
                   ? <Dropdown name="value" ariaLabel="Correct status" defaultValue={ATT_STATUSES[0]} options={ATT_STATUSES} style={{ width: '100%' }} />
-                  : <TimeField key={l.field} name="value" label="" defaultValue={start(l.field)} />}</div>
+                  : <TimePicker key={l.field} name="value" ariaLabel="Correct time" defaultValue={start(l.field)} required hint={false} />}</div>
               {lines.length > 1 && <button type="button" className="btn ghost sm corr-x" aria-label="Remove this correction" onClick={() => setLines(lines.filter((x) => x.id !== l.id))}>×</button>}
             </div>
           ))}
-          {free.length > 0 && <button type="button" className="btn ghost sm" onClick={() => setLines([...lines, { id: ++uid, field: free[0][0] }])}>+ Add another correction</button>}
+          {free.length > 0 && <div style={{ marginBottom: 14 }}><button type="button" className="btn ghost sm" onClick={() => setLines([...lines, { id: ++uid, field: free[0][0] }])}>+ Add another correction</button></div>}
           <Field name="reason" label="Reason for the correction *" type="textarea" attrs={{ required: true, maxLength: 1000, rows: 3, placeholder: 'e.g. Forgot to time out; was on a client visit' }} />
           <div className="row"><Submit>Send request</Submit> <button type="button" className="btn ghost" onClick={close}>Cancel</button></div>
         </ApiForm>

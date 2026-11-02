@@ -43,7 +43,7 @@ function useApply() {
 }
 
 /** `multiple`: tick several options (value = comma-joined, '' = all); `options[0]`'s label is then the "all" text and the rest are the choices. */
-export interface ToolbarDropdown { key: string; label: string; value: string; options: DropdownOption[]; multiple?: boolean; noun?: string }
+export interface ToolbarDropdown { key: string; label: string; value: string; options: DropdownOption[]; multiple?: boolean; noun?: string; hideOnPhone?: boolean }
 
 /**
  * Toolbar above the table columns: search box (query key `q`) and themed dropdowns on the left, Export on the right.
@@ -76,10 +76,11 @@ export function TableFilters({ q, placeholder, dropdowns, exportHref, exportTitl
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label="Search" />
       </div>
       {lead}
-      {dropdowns.map((d) => d.multiple
+      {dropdowns.map((d) => { const el = d.multiple
         ? <MultiDropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} noun={d.noun ?? 'items'}
             allLabel={String(Array.isArray(d.options[0]) ? d.options[0][1] : d.options[0])} options={d.options.slice(1).map((o) => (Array.isArray(o) ? o[0] : o))} />
-        : <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />)}
+        : <Dropdown key={d.key} ariaLabel={d.label} value={vals[d.key]} onChange={(x) => set(d.key, x)} options={d.options} />;
+        return d.hideOnPhone ? <span key={d.key} className="tt-phone-hide">{el}</span> : el; })}
       {exportHref && <a className="btn ghost tt-export" href={exportHref} title={exportTitle} onClick={(e) => confirmExport(e, exportHref, exportNote)}><Icon d="M12 3v12M7 10l5 5 5-5M5 21h14" />Export</a>}
       {trail && <span className={exportHref ? undefined : 'tt-trail'}>{trail}</span>}
     </form>

@@ -6,6 +6,7 @@ import { BatchUploadButton } from '@/components/batch-upload';
 import { AIRFARE_COLS } from '@/lib/batch-cols';
 import { flat, paginate } from '@/lib/list';
 import { longDate, today } from '@/lib/util';
+import { withModified } from '@/lib/queries/modified';
 import { airfareFilters, airfareQuery, airfareTotals, needsCheckin } from '@/lib/queries/airfare';
 import { Page, Pager } from '@/components/ui';
 import { CheckinButton } from '@/components/checkin-button';
@@ -40,7 +41,7 @@ export default async function Airfare(props: PageProps<'/app/airfare'>) {
       <div className="tw-card">
       <AirfareTableFilters airlines={airlineOpts} statuses={CHECKIN_STATUSES} exportHref={`/api/airfare/export?${list.qs}`} exportNote={note}
         initial={{ q: q.q || '', airline: airlines.join(','), status: statuses.join(',') }} />
-      <AirfareTable rows={list.rows} owner={isOwner(me)} totals={{ n_all: list.total, total: Number(sums.total), sc: Number(sums.sc), fee: Number(sums.fee) }} />
+      <AirfareTable rows={await withModified(list.rows, 'airfare')} owner={isOwner(me)} meId={me.id} totals={{ n_all: list.total, total: Number(sums.total), sc: Number(sums.sc), fee: Number(sums.fee) }} />
       {list.pages > 1 && <div className="tw-foot"><Pager list={list} /></div>}
       </div>
     </Page>

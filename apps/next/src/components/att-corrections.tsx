@@ -2,7 +2,7 @@
 // Attendance Monitoring → "Corrections" header button: staff requests to correct their attendance (sent from My Attendance →
 // right-click → Apply for correction). Pending ones can be approved (applies the change) or declined with a reason the
 // employee sees.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { longDate } from '@/lib/util';
 import { CORR_FIELDS, LEAVE_BADGE, LEAVE_STATUSES, type Row } from '@/lib/types';
 import { ApiForm, Field, Submit } from './form';
@@ -23,6 +23,38 @@ function Decline({ r, onClose }: { r: Row; onClose: () => void }) {
         </ApiForm>
       )}
     </Modal>
+  );
+}
+
+/** "⋮" button that opens a small Approve / Decline menu to its right (fixed-position so the table's scroll box can't clip it). */
+function ActionMenu({ onApprove, onDecline }: { onApprove: () => void; onDecline: () => void }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!pos) return;
+    const close = () => setPos(null);
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('click', close);
+    window.addEventListener('keydown', key);
+    window.addEventListener('resize', close);
+    document.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('keydown', key);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('scroll', close, true);
+    };
+  }, [pos]);
+  return (
+    <>
+      <button type="button" className="btn ghost sm" aria-label="Actions" aria-haspopup="menu" aria-expanded={!!pos} style={{ fontSize: '1.2rem', lineHeight: 1, padding: '.2em .6em' }}
+        onClick={(e) => { e.stopPropagation(); if (pos) return setPos(null); const b = e.currentTarget.getBoundingClientRect(); setPos({ x: b.right + 6 + 170 <= window.innerWidth ? b.right + 6 : Math.max(8, b.left - 176), y: b.top }); }}>⋮</button>
+      {pos && (
+        <div className="ctx-menu" role="menu" style={{ left: pos.x, top: pos.y }}>
+          <button type="button" role="menuitem" onClick={onApprove}>Approve</button>
+          <button type="button" role="menuitem" className="danger" onClick={onDecline}>Decline</button>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -67,9 +99,9 @@ export function CorrectionsButton({ rows }: { rows: Row[] }) {
                       <td><span className={`badge ${LEAVE_BADGE[r.status] || ''}`}>{r.status}</span>
                         {r.status === 'Declined' && r.decline_reason && <div className="small muted" style={{ maxWidth: 200 }}>Reason: {r.decline_reason}</div>}
                         {r.reviewer && <div className="small muted">by {r.reviewer}</div>}</td>
-                      <td className="nowrap">{r.status === 'Pending' && <>
-                        <button type="button" className="btn sm" disabled={acting === r.id} onClick={() => approve(r)}>{acting === r.id ? <><span className="spin" />Approving…</> : 'Approve'}</button>{' '}
-                        <button type="button" className="btn danger sm" disabled={acting === r.id} onClick={() => setDeclining(r)}>Decline</button></>}</td>
+                      <td className="nowrap">{r.status === 'Pending' && (acting === r.id
+                        ? <><span className="spin" />Approving…</>
+                        : <ActionMenu onApprove={() => approve(r)} onDecline={() => setDeclining(r)} />)}</td>
                     </tr>
                   ))}
                   {!shown.length && <tr><td colSpan={6} className="empty">{tab === 'Pending' ? 'No pending correction requests. 🎉' : 'Nothing to show.'}</td></tr>}

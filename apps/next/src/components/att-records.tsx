@@ -10,6 +10,14 @@ import { TimeField } from './date-time-picker';
 import { useRowSelection } from './row-select';
 import { Modal } from './modal';
 import { FootLine } from './ui';
+import { ModBy } from './mod-by';
+import { SortGroupItems, useGroupOf, type SortGroup } from './sort-group';
+import { groupedRows, monthOf } from './group-rows';
+
+const SG: SortGroup = {
+  sorts: [['name', 'Employee'], ['day', 'Date'], ['time_in', 'Time in'], ['time_out', 'Time out'], ['hours', 'Hours worked'], ['status', 'Status']],
+  groups: [['name', 'Employee'], ['day', 'Date'], ['status', 'Status'], ['month', 'Month']],
+};
 
 const t24 = (s?: string | null) => (s ? s.slice(11, 16) : '');
 const hm = (s?: string | null) => hm12(s);
@@ -36,15 +44,16 @@ function Correct({ r, onClose }: { r: Row; onClose: () => void }) {
 }
 
 export function AttendanceTable({ rows, totalMins, totalCount }: { rows: Row[]; totalMins: number; totalCount: number }) {
-  const { wrap, sel, menu, setMenu, rowProps, selBox } = useRowSelection(rows.map((_, i) => i), 70);
+  const { wrap, sel, menu, setMenu, rowProps, selBox, emptyMenu } = useRowSelection(rows.map((_, i) => i), 70);
+  const groupOf = useGroupOf<Row>({ name: (r) => r.name, day: (r) => longDate(r.day), status: (r) => r.status, month: (r) => monthOf(r.day) });
   const [fixing, setFixing] = useState<Row | null>(null);
   const picked = rows.filter((_, i) => sel.has(i));
   const one = menu && menu.ids.length === 1 ? rows[menu.ids[0]] : undefined;
   return (
-    <div className="tw tw-fixed tw-fm tw-sel" ref={wrap}>
-      <table><thead><tr><th>Employee</th><th>Date</th><th>Time in</th><th>Break out</th><th>Break in</th><th>Time out</th><th className="num">Hours worked</th><th>Status</th></tr></thead>
+    <div className="tw tw-fixed tw-fm tw-sel att-tw" ref={wrap} onContextMenu={emptyMenu}>
+      <table><thead><tr><th>Employee</th><th>Date</th><th>Time in</th><th>Break out</th><th>Break in</th><th>Time out</th><th className="num">Hours worked</th><th>Status</th><th>Modified by</th></tr></thead>
         <tbody>
-          {rows.map((r, i) => (
+          {groupedRows(rows, groupOf, 9, (r, i) => (
             <tr key={`${r.uid}-${r.day}`} {...rowProps(i)} onDoubleClick={() => setFixing(r)}>
               <td>{r.name}<div className="small muted">{r.designation || ''}</div></td>
               <td className="nowrap">{longDate(r.day)}</td>
@@ -55,18 +64,20 @@ export function AttendanceTable({ rows, totalMins, totalCount }: { rows: Row[]; 
               <td className="num">{r.mins ? hrs(r.mins) : <span className="muted">—</span>}</td>
               <td><span className={`badge ${ATT_BADGE[r.status] || ''}`}>{r.status}</span>{r.late_min ? <span className="small muted"> +{r.late_min} min</span> : null}
                 {r.issue && <div className="small att-issue">{r.issue}</div>}</td>
+              <td className="small"><ModBy r={r} /></td>
             </tr>
           ))}
-          {!rows.length && <tr><td colSpan={8} className="empty"><strong>No attendance records match these filters.</strong><br /><span className="small muted">Try another date range, employee or status.</span></td></tr>}
-          {!!rows.length && <tr className="fill"><td colSpan={8} /></tr>}
+          {!rows.length && <tr><td colSpan={9} className="empty"><strong>No attendance records match these filters.</strong><br /><span className="small muted">Try another date range, employee or status.</span></td></tr>}
+          {!!rows.length && <tr className="fill"><td colSpan={9} /></tr>}
         </tbody>
         {/* Total hours count complete time-in/out only; while rows are selected it is the selection's. */}
-        {!!rows.length && <FootLine cols={8} total={totalCount} selected={picked.length}
+        {!!rows.length && <FootLine cols={9} total={totalCount} selected={picked.length}
           right={`Total hours: ${hrs(picked.length ? picked.reduce((a, r) => a + r.mins, 0) : totalMins)}`} />}
       </table>
-      {menu && one && (
+      {menu && (one || !menu.ids.length) && (
         <div className="ctx-menu" role="menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
-          <button type="button" role="menuitem" onClick={() => { setMenu(null); setFixing(one); }}>Correct record</button>
+          {one && <button type="button" role="menuitem" onClick={() => { setMenu(null); setFixing(one); }}>Correct record</button>}
+          {!menu.ids.length && <SortGroupItems sg={SG} done={() => setMenu(null)} />}
         </div>
       )}
       {fixing && <Correct key={`${fixing.uid}-${fixing.day}`} r={fixing} onClose={() => setFixing(null)} />}

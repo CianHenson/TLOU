@@ -15,23 +15,33 @@ const Ico = ({ children }: { children: ReactNode }) => (
 /** Sidebar icon per module (unknown hrefs get a dot). */
 const ICONS: Record<string, ReactNode> = {
   '/app': <path d="M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z" />,
-  '/app/airfare': <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />,
-  '/app/finance-monitor': <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18" />,
-  '/app/expenses':<path d="M6 2h12v20l-3-2-3 2-3-2-3 2zM9 7h6M9 11h6M9 15h4" />,
+  '/app/airfare': <><path d="M3 17l6-6 4 4 8-8" /><path d="M14 7h7v7" /></>,
+  '/app/expenses': <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18" />,
   '/app/attendance-monitor': <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   '/app/attendance': <path d="M3 5h18v16H3zM3 9h18M8 3v4M16 3v4M9 15l2 2 4-4" />,
   '/app/employees': <><circle cx="9" cy="7" r="4" /><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
   '/app/audit': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></>,
   '/app/profile': <><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>,
-  '/app/customers': <><path d="M3 4h18v16H3z" /><circle cx="9" cy="10" r="2" /><path d="M15 9h3M15 13h3M6 16a3 3 0 0 1 6 0" /></>,
-  '/app/airlines': <path d="M2 16l20-5-4-6-3 1-5 3-6 1zM8 15l-1 5 3-1 2-4" />,
+  '/app/airlines': <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />,
+  '/app/messages': <><path d="M3 5h18v14H3z" /><path d="M3 7l9 6 9-6" /></>,
+  '/app/trash': <><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /><path d="M10 10v6M14 10v6" /></>,
+  '/app/delete-archive': <><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /><path d="M10 10v6M14 10v6" /></>,
   '/app/deductions': <path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />,
-  '/app/payments': <path d="M2 5h20v14H2zM2 10h20" />,
 };
 const DOT = <circle cx="12" cy="12" r="3" />;
 
 export function AppNav({ items, userName, roleLabel }: { items: NavItem[]; userName: string; roleLabel: string }) {
   const path = usePathname();
+  // On phones the menu slides over the page: close it after picking a page and when the page behind it is tapped.
+  useEffect(() => { document.querySelector('.side')?.classList.remove('open'); }, [path]);
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      const s = document.querySelector('.side'), t = e.target as Element;
+      if (s?.classList.contains('open') && !s.contains(t) && !t.closest('.menu')) s.classList.remove('open');
+    };
+    document.addEventListener('click', h);
+    return () => document.removeEventListener('click', h);
+  }, []);
   return (
     <>
       {items.map((n, i) => 'group' in n

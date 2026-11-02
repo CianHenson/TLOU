@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   // (Cache Components / partial prefetching are intentionally left off).
   serverExternalPackages: ["mysql2"],
   poweredByHeader: false,
+  // The old Monitoring Finances page was merged into Expenses (now named Monitoring Finances).
+  redirects: async () => [{ source: '/app/finance-monitor', destination: '/app/expenses', permanent: true }],
   turbopack: {
     root: __dirname,
     rules: {

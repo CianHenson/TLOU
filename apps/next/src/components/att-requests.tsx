@@ -7,6 +7,7 @@ import { longDate } from '@/lib/util';
 import { LEAVE_BADGE, LEAVE_STATUSES, type Row } from '@/lib/types';
 import { ApiForm, Field, Submit } from './form';
 import { Modal, usePost } from './modal';
+import { KebabMenu } from './kebab-menu';
 
 const dates = (r: Row) => (r.from_day === r.to_day ? longDate(r.from_day) : `${longDate(r.from_day)} – ${longDate(r.to_day)}`);
 
@@ -45,7 +46,7 @@ export function RequestsButton({ rows }: { rows: Row[] }) {
         Requests <span className={`badge ${pending ? 'b-warn' : ''}`} style={{ marginLeft: 6 }}>{pending}</span>
       </button>
       {open && (
-        <Modal title="Employee requests" onClose={() => setOpen(false)} width={780}>
+        <Modal title="Employee requests" onClose={() => setOpen(false)} width={900}>
           {() => (
             <>
               <div className="seg" role="tablist" aria-label="Filter requests">
@@ -55,20 +56,19 @@ export function RequestsButton({ rows }: { rows: Row[] }) {
                   </button>
                 ))}
               </div>
-              <div className="tw" style={{ maxHeight: '60vh', overflow: 'auto' }}><table><colgroup><col /><col /><col style={{ width: '17%' }} /><col style={{ width: '22%' }} /><col /><col /><col style={{ width: '18%' }} /></colgroup>
+              <div className="tw" style={{ maxHeight: '60vh', overflow: 'auto' }}><table><colgroup><col /><col /><col /><col style={{ width: '24%' }} /><col /><col /><col style={{ width: 52 }} /></colgroup>
                 <thead><tr><th>Employee</th><th>Type</th><th>Date(s)</th><th>Reason / details</th><th>Filed</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                   {shown.map((r) => (
                     <tr key={r.id}>
-                      <td>{r.name}</td><td className="nowrap">{r.kind}</td><td className="nowrap">{dates(r)}</td>
+                      <td className="nowrap">{r.name}</td><td className="nowrap">{r.kind}</td><td className="nowrap">{dates(r)}</td>
                       <td className="small" style={{ maxWidth: 200, overflowWrap: 'anywhere' }}>{r.reason}</td>
                       <td className="nowrap small">{longDate(r.created_at.slice(0, 10))}</td>
                       <td><span className={`badge ${LEAVE_BADGE[r.status] || ''}`}>{r.status}</span>
                         {r.status === 'Declined' && r.decline_reason && <div className="small muted" style={{ maxWidth: 220 }}>Reason: {r.decline_reason}</div>}
                         {r.reviewer && <div className="small muted">by {r.reviewer}</div>}</td>
-                      <td className="nowrap">{r.status === 'Pending' && <>
-                        <button type="button" className="btn sm" disabled={acting === r.id} onClick={() => approve(r)}>{acting === r.id ? <><span className="spin" />Approving…</> : 'Approve'}</button>{' '}
-                        <button type="button" className="btn danger sm" disabled={acting === r.id} onClick={() => setDeclining(r)}>Decline</button></>}</td>
+                      <td className="nowrap" style={{ textAlign: 'right' }}>{r.status === 'Pending' && (acting === r.id ? <span className="spin" aria-label="Working" /> : (
+                        <KebabMenu label={`Actions for ${r.name}`} items={[{ label: 'Approve', onClick: () => approve(r) }, { label: 'Decline…', danger: true, onClick: () => setDeclining(r) }]} />))}</td>
                     </tr>
                   ))}
                   {!shown.length && <tr><td colSpan={7} className="empty">{tab === 'Pending' ? 'No pending requests. 🎉' : `No ${tab === 'All' ? '' : tab.toLowerCase() + ' '}requests in the last 120 days.`}</td></tr>}

@@ -1,40 +1,55 @@
 // Expenses: list query (page + CSV export), form validation and who may touch which record. Server-only.
-//  * Owner / admin see and manage every expense; a staff member only ever sees and manages the ones they recorded.
+//  * Everyone with expense access sees every expense; the owner / admin manage any, a staff member only the ones they recorded.
 import 'server-only';
 import { db } from '../db';
-import { where } from '../list';
+import { orderBy, where } from '../list';
 import { EXPENSE_CATS, METHODS } from '../biz';
 import { HttpError, isOwner, type SessionUser } from '../auth';
 import { str, isDate, toCents, today, intOrNull } from '../util';
 
 /** Comma-separated expense types from the URL (`category`). */
-export const expenseCats = (q: Record<string, string>) => (q.category || '').split(',').filter((c) => EXPENSE_CATS.includes(c));
+export const expenseCats = (q: Record<string, string>) => [...new Set((q.category || '').split(',').map((c) => str(c, 40)).filter(Boolean))];
+
+/** Every category in use: the standard list first, then the ones people added (alphabetical). */
+export async function expenseCategories() {
+  const used = await db.all<{ category: string }>(`SELECT DISTINCT category FROM expenses WHERE status='Valid' AND category<>''`);
+  return [...EXPENSE_CATS, ...used.map((r) => r.category).filter((c) => !EXPENSE_CATS.includes(c)).sort((a, b) => a.localeCompare(b))];
+}
 
 /**
- * Valid expenses matching the URL filters. Staff are always limited to their own (`user.id`), whatever the URL says;
- * the owner / admin can narrow to one recorder with `uid`.
+ * Valid expenses matching the URL filters (everyone with expense access sees every expense); `uid` narrows to one recorder.
  */
+/** Right-click "Sort by" / "Group by" keys → SQL (the table offers the same keys). */
+const SORTS = { date: 'e.spent_at', type: 'e.category', description: 'e.description', method: 'e.method', by: 'u.name', amount: 'e.amount' };
+const GROUPS = { type: 'e.category ASC', method: 'e.method ASC', month: 'SUBSTR(e.spent_at,1,7) DESC', by: 'u.name ASC' };
+
 export function expenseQuery(q: Record<string, string>, user: SessionUser): [string, unknown[]] {
   const w = where();
   w.add(`e.status='Valid'`);
-  if (!isOwner(user)) w.add('e.user_id=?', user.id);
-  else if (intOrNull(q.uid)) w.add('e.user_id=?', intOrNull(q.uid));
+  if (intOrNull(q.uid)) w.add('e.user_id=?', intOrNull(q.uid));
   if (q.q) { const l = `%${str(q.q, 60)}%`; w.add('(e.description LIKE ? OR e.category LIKE ? OR e.method LIKE ?)', l, l, l); }
   const cats = expenseCats(q);
   if (cats.length) w.add(`e.category IN (${cats.map(() => '?').join(',')})`, ...cats);
   if (isDate(q.from)) w.add('e.spent_at>=?', q.from);
   if (isDate(q.to)) w.add('e.spent_at<=?', q.to);
   return [`SELECT e.*, n.body AS receipt_name, u.name AS recorder FROM expenses e LEFT JOIN users u ON u.id=e.user_id
-    LEFT JOIN notes n ON n.entity='expense_file' AND n.entity_id=e.id ${w.sql} ORDER BY e.spent_at DESC, e.id DESC`, w.p];
+    LEFT JOIN notes n ON n.entity='expense_file' AND n.entity_id=e.id ${w.sql} ${orderBy(q, SORTS, GROUPS, 'e.spent_at DESC, e.id DESC', 'e.id DESC')}`, w.p];
 }
 
 /** Validated expense form values; `errors` is keyed by field name so the modal can highlight them. */
 export function expenseInput(b: Record<string, FormDataEntryValue | undefined>) {
-  const x = { spent_at: str(b.spent_at, 10) || today(), category: String(b.category ?? ''), method: String(b.method ?? ''), description: str(b.description, 500), amount: toCents(b.amount) };
+  // "Add new category…" / "Other" payment method send the typed text in category_new / method_other.
+  const newCat = b.category === '__new', other = b.method === 'Other';
+  const typedCat = str(newCat ? b.category_new : b.category, 40);
+  const x = { spent_at: str(b.spent_at, 10) || today(), category: EXPENSE_CATS.find((c) => c.toLowerCase() === typedCat.toLowerCase()) ?? typedCat,
+    method: other ? str(b.method_other, 30) : String(b.method ?? ''), description: str(b.description, 500), amount: toCents(b.amount) };
   const errors: Record<string, string> = {};
   if (!isDate(x.spent_at) || x.spent_at > today()) errors.spent_at = 'Enter a valid date (not in the future).';
-  if (!EXPENSE_CATS.includes(x.category)) errors.category = 'Choose a type of expense.';
-  if (!METHODS.includes(x.method)) errors.method = 'Choose a payment method.';
+  const catKey = newCat ? 'category_new' : 'category';
+  if (!x.category) errors[catKey] = newCat ? 'Enter the new category name.' : 'Choose a type of expense.';
+  else if (!/^[\p{L}\p{N}][\p{L}\p{N} &/.,()'-]*$/u.test(x.category)) errors[catKey] = 'Use letters, numbers and basic punctuation only.';
+  if (other) { if (!x.method) errors.method_other = 'Say what the other payment method is.'; }
+  else if (!METHODS.includes(x.method)) errors.method = 'Choose a payment method.';
   if (!Number.isFinite(x.amount) || x.amount <= 0) errors.amount = 'Enter an amount above 0.';
   else if (x.amount > 1e11) errors.amount = 'That amount is too large.';
   if (!x.description) errors.description = 'Add a description.';

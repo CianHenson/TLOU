@@ -35,5 +35,7 @@
 .lg-back{display:flex;align-items:center;justify-content:center;gap:.5rem;box-sizing:border-box;width:100%;margin-top:.7rem;padding:.75rem;border:0;border-radius:10px;font-weight:600;font-size:.9rem;color:#fff;text-decoration:none;background:transparent;transition:background .12s}
 .lg-back:hover{background:rgba(255,255,255,.1)}
 @media (max-width:1000px){.lg{padding-right:clamp(24px,6vw,96px)}}
+/* Phones and tablets: only the sign-in card is shown (the welcome text is hidden), centred on the screen. */
+@media (max-width:1024px){.lg{grid-template-columns:minmax(0,460px);justify-content:center;align-content:center;padding:40px 24px}.lg-hero{display:none}.lg-card{width:100%;max-width:460px;justify-self:center}}
 @media (max-width:820px){.lg{grid-template-columns:1fr;align-content:center;padding:40px 24px}.lg-hero{max-width:none}}
 @media (max-width:480px){.lg-card{padding:1.5rem 1.2rem}}

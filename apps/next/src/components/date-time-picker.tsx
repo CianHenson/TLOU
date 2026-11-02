@@ -5,6 +5,7 @@
 // server-side error from the surrounding <ApiForm>, like <Field>.
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useFormState } from './form';
+import { Dropdown, type DropdownOption } from './dropdown';
 
 const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
@@ -43,8 +44,8 @@ function usePopover(height: number) {
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const longDate = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
-export function DatePicker({ name, defaultValue = '', min, max, today, required, ariaLabel, invalid }: {
-  name: string; defaultValue?: string; min?: string; max?: string; today: string; required?: boolean; ariaLabel: string; invalid?: boolean;
+export function DatePicker({ name, defaultValue = '', min, max, today, required, ariaLabel, invalid, onChange }: {
+  name: string; defaultValue?: string; min?: string; max?: string; today: string; required?: boolean; ariaLabel: string; invalid?: boolean; onChange?: (v: string) => void;
 }) {
   const [val, setVal] = useState(defaultValue);
   const [view, setView] = useState(() => (defaultValue || today).slice(0, 7));
@@ -54,7 +55,7 @@ export function DatePicker({ name, defaultValue = '', min, max, today, required,
   const cells: (string | null)[] = [...Array(first).fill(null), ...Array.from({ length: days }, (_, i) => `${view}-${pad(i + 1)}`)];
   const off = (d: string) => (!!min && d < min) || (!!max && d > max);
   const step = (n: number) => { const d = new Date(Date.UTC(y, m - 1 + n, 1)); setView(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`); };
-  const pick = (d: string) => { setVal(d); p.close(); };
+  const pick = (d: string) => { setVal(d); onChange?.(d); p.close(); };
   return (
     <span className="dp">
       <input type="hidden" name={name} value={val} />
@@ -135,40 +136,39 @@ const shortTime = (t: string) => { const x = to12(t); return `${x.h}:${pad(x.m)}
  * Inline 12-hour time entry: separate Hour / Minute / AM-PM selects (keyboard friendly, native on touch). The value is still
  * submitted as 'HH:MM' (24 h) through a hidden input, or '' when nothing is chosen. Choosing only some parts is an error.
  */
-export function TimePicker({ name, defaultValue = '', ariaLabel, invalid, optional = true }: { name: string; defaultValue?: string; ariaLabel: string; invalid?: boolean; optional?: boolean }) {
+export function TimePicker({ name, defaultValue = '', ariaLabel, invalid, optional = true, required = false, hint = true }: { name: string; defaultValue?: string; ariaLabel: string; invalid?: boolean; optional?: boolean; required?: boolean; hint?: boolean }) {
   const init = /^\d{2}:\d{2}/.test(defaultValue) ? to12(defaultValue) : null;
   const [t, setT] = useState({ h: init ? String(init.h) : '', m: init ? pad(init.m) : '', ap: init ? init.ap : '' });
-  const hr = useRef<HTMLSelectElement>(null);
+  const hr = useRef<HTMLInputElement>(null);
   const filled = [t.h, t.m, t.ap].filter(Boolean).length;
   const partial = filled > 0 && filled < 3;
   const val = filled === 3 ? to24(+t.h, +t.m, t.ap) : '';
-  const msg = partial ? `Choose the ${[!t.h && 'hour', !t.m && 'minute', !t.ap && 'AM or PM'].filter(Boolean).join(', ')} to complete the time.` : '';
+  const msg = partial ? `Choose the ${[!t.h && 'hour', !t.m && 'minute', !t.ap && 'AM or PM'].filter(Boolean).join(', ')} to complete the time.` : required && !filled ? 'Choose the time.' : '';
   useEffect(() => { hr.current?.setCustomValidity(msg); }, [msg]);
+  // Themed dropdowns (not the browser's native lists); the hidden input below carries the "complete the time" validation.
   const sel = (k: 'h' | 'm' | 'ap', label: string, placeholder: string, opts: string[]) => (
-    <select ref={k === 'h' ? hr : undefined} className={`tp-sel ${t[k] ? '' : 'empty'}`} aria-label={`${ariaLabel} ${label}`} aria-invalid={partial && !t[k] ? true : undefined}
-      value={t[k]} onChange={(e) => setT({ ...t, [k]: e.target.value })}>
-      <option value="">{placeholder}</option>
-      {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-    </select>
+    <Dropdown className={`tp-dd ${t[k] ? '' : 'unset'}`} ariaLabel={`${ariaLabel} ${label}`} value={t[k]} onChange={(v) => setT({ ...t, [k]: v })}
+      placeholder={' '} options={opts as DropdownOption[]} />
   );
   return (
     <div className="tp-inline">
       <input type="hidden" name={name} value={val} />
       <div className={`tp-row ${invalid || partial ? 'bad' : ''}`} role="group" aria-label={ariaLabel}>
+        <input ref={hr} className="tp-v" tabIndex={-1} aria-hidden="true" value="" onChange={() => {}} />
         {sel('h', 'hour', 'Hour', Array.from({ length: 12 }, (_, i) => String(i + 1)))}
         <span className="tp-colon" aria-hidden="true">:</span>
         {sel('m', 'minute', 'Min', Array.from({ length: 60 }, (_, i) => pad(i)))}
         {sel('ap', 'AM or PM', 'AM/PM', ['AM', 'PM'])}
         {filled > 0 && <button type="button" className="tp-clear" aria-label={`Clear ${ariaLabel.toLowerCase()}`} title="Clear time" onClick={() => setT({ h: '', m: '', ap: '' })}>×</button>}
       </div>
-      <div className="small tp-sum" aria-live="polite">{val ? `Selected: ${shortTime(val)}` : optional ? 'Optional · 12-hour format' : '12-hour format · choose AM or PM'}</div>
+      {hint && <div className="small tp-sum" aria-live="polite">{val ? `Selected: ${shortTime(val)}` : optional ? 'Optional · 12-hour format' : '12-hour format · choose AM or PM'}</div>}
       {partial && <div className="err" role="alert">{msg}</div>}
     </div>
   );
 }
 
 /** <DatePicker> with a label and the field's server-side error, laid out like <Field>. */
-export function DateField({ name, label, ...rest }: { name: string; label: string; defaultValue?: string; min?: string; max?: string; today: string; required?: boolean }) {
+export function DateField({ name, label, ...rest }: { name: string; label: string; defaultValue?: string; min?: string; max?: string; today: string; required?: boolean; onChange?: (v: string) => void }) {
   const e = useFormState().errors[name];
   return (
     <div className={`field ${e ? 'has-err' : ''}`}><label>{label}</label>

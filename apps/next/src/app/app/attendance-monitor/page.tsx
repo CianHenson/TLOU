@@ -1,8 +1,8 @@
 import { requireUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as U from '@/lib/util';
-import { flat } from '@/lib/list';
-import { ATT_STATUSES } from '@/lib/types';
+import { flat, sortRows } from '@/lib/list';
+import { ATT_STATUSES, type Row } from '@/lib/types';
 import { activeEmployees, allEmployees, attendanceRecords, availableUsers, leaveRequests, payrollList, recordRange, workSummary } from '@/lib/queries/payroll';
 import { Page, Pager } from '@/components/ui';
 import { HolidaysButton } from '@/components/att-holidays';
@@ -10,6 +10,7 @@ import { DateRangeFilter, TableFilters } from '@/components/list-filters';
 import { AttendanceTable } from '@/components/att-records';
 import { AddEmployeeButton, EmployeeTable } from '@/components/att-employees';
 import { RequestsButton } from '@/components/att-requests';
+import { withModified } from '@/lib/queries/modified';
 import { CorrectionsButton } from '@/components/att-corrections';
 import { GeneratePayrollButton, PayrollTable } from '@/components/att-payroll';
 import { SectionSelect } from '@/components/att-section';
@@ -42,7 +43,9 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
     const r = recordRange(q);
     const statuses = (q.status || '').split(',').filter((s) => ATT_STATUSES.includes(s));
     const search = U.str(q.q, 60).toLowerCase();
-    const rows = (await attendanceRecords({ ...r, uid, statuses })).filter((x) => !search || String(x.name).toLowerCase().includes(search));
+    const rows = sortRows((await attendanceRecords({ ...r, uid, statuses })).filter((x) => !search || String(x.name).toLowerCase().includes(search)), q,
+      { name: (x) => x.name, day: (x) => x.day, time_in: (x) => x.time_in, time_out: (x) => x.time_out, hours: (x) => x.mins, status: (x) => x.status },
+      { name: { key: (x) => x.name }, day: { key: (x) => x.day, desc: true }, status: { key: (x) => x.status }, month: { key: (x) => x.day.slice(0, 7), desc: true } });
     const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE)), page = Math.min(pages, Math.max(1, parseInt(q.page, 10) || 1));
     const qs = new URLSearchParams(Object.entries(q).filter(([k, v]) => v && k !== 'page')).toString();
     const active = [`dates ${U.longDate(r.from)} to ${U.longDate(r.to)}`, uid && `employee: ${all.find((e) => e.id === uid)?.name ?? uid}`, statuses.length && `status: ${statuses.join(', ')}`, search && `search "${q.q}"`].filter(Boolean);
@@ -52,21 +55,24 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
         <div className="tw-card">
           <TableFilters lead={<SectionSelect value="attendance" />} q={q.q || ''} placeholder="Search employee name" exportHref={`/api/attendance-monitor/export?${qs}`} exportTitle="Export the filtered records as CSV"
             exportNote={`Only the filtered records will be exported (${active.join(', ')}).`} dropdowns={[
-              { key: 'uid', label: 'Employee', value: uid ? String(uid) : '', options: empOpts },
-              { key: 'status', label: 'Status', value: statuses.join(','), options: [['', 'All statuses'], ...ATT_STATUSES], multiple: true, noun: 'statuses' },
+              { key: 'uid', label: 'Employee', value: uid ? String(uid) : '', options: empOpts, hideOnPhone: true },
+              { key: 'status', label: 'Status', value: statuses.join(','), options: [['', 'All statuses'], ...ATT_STATUSES], multiple: true, noun: 'statuses', hideOnPhone: true },
             ]} />
-          <AttendanceTable rows={rows.slice((page - 1) * PER_PAGE, page * PER_PAGE)} totalMins={rows.reduce((a, x) => a + x.mins, 0)} totalCount={rows.length} />
+          <AttendanceTable rows={await withModified(rows.slice((page - 1) * PER_PAGE, page * PER_PAGE), 'attendance', (r) => `${r.uid}:${r.day}`)} totalMins={rows.reduce((a, x) => a + x.mins, 0)} totalCount={rows.length} />
           {pages > 1 && <div className="tw-foot"><Pager list={{ page, pages, total: rows.length, qs }} /></div>}
         </div>
       </>
     );
   } else if (tab === 'employees') {
     const search = U.str(q.q, 60).toLowerCase();
-    const [users, rows] = await Promise.all([
+    const [users, unsorted] = await Promise.all([
       availableUsers(),
       Promise.all(all.filter((e) => !search || `${e.name} ${e.email} ${e.designation ?? ''}`.toLowerCase().includes(search))
         .map(async (e) => ({ ...e, ...(await workSummary(e, mFrom, td)) }))),
     ]);
+    const rows = sortRows<Row>(unsorted, q,
+      { name: (e) => e.name, designation: (e) => e.designation, rate: (e) => e.hourly_rate, status: (e) => (e.active ? (e.user_active ? 0 : 1) : 2), days: (e) => e.days, hours: (e) => e.minutes },
+      { status: { key: (e) => (e.active ? (e.user_active ? 0 : 1) : 2) }, designation: { key: (e) => e.designation || '' } });
     actions = <AddEmployeeButton users={users} />;
     body = (
       <>
@@ -76,7 +82,10 @@ export default async function AttendanceMonitor(props: PageProps<'/app/attendanc
   } else {
     const from = U.isDate(q.from) ? q.from : '', to = U.isDate(q.to) ? q.to : '';
     const search = U.str(q.q, 60).toLowerCase();
-    const rows = (await payrollList({ uid, from, to })).filter((x) => !search || String(x.name).toLowerCase().includes(search));
+    const rows = sortRows((await payrollList({ uid, from, to })).filter((x) => !search || String(x.name).toLowerCase().includes(search)), q,
+      { name: (x) => x.name, period: (x) => x.period_from, days: (x) => x.days, hours: (x) => x.minutes, rate: (x) => x.hourly_rate, basic: (x) => x.basic_pay, adjustments: (x) => x.adjustments,
+        gross: (x) => x.gross_pay ?? x.basic_pay + x.adjustments, deductions: (x) => x.total_deductions, net: (x) => x.net_pay },
+      { name: { key: (x) => x.name }, kind: { key: (x) => x.period_kind }, month: { key: (x) => x.period_from.slice(0, 7), desc: true } });
     const deds = await activeDeductionsOn(td);
     actions = <GeneratePayrollButton employees={staff} today={td} deductions={deds} />;
     filters = <div className="af-bar"><DateRangeFilter today={td} showBy={false} initial={{ by: 'txn', from, to, range: q.range || (from || to ? 'custom' : '') }} /></div>;

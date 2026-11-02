@@ -20,7 +20,7 @@ export function EmployeeEditModal({ user, onClose }: { user: Row; onClose: () =>
         </div>
         <div className="modal-body">
           <EmployeeForm isNew={false} onClose={close} e={{ id: user.id, first_name: user.first_name ?? '', last_name: user.last_name ?? '', email: user.email ?? '',
-            role: user.role, designation: user.designation ?? '', active: user.active, can_expenses: user.can_expenses }} />
+            role: user.role, designation: user.designation ?? '', active: user.active, can_expenses: user.can_expenses, can_messages: user.can_messages }} />
         </div>
       </dialog>
     </ShellPortal>

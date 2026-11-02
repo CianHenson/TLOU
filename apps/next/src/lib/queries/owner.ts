@@ -34,59 +34,6 @@ export function period(q: Record<string, string | undefined>) {
 /** People counted in attendance: active employees (Attendance Monitoring → Employees); never the owner or admins. */
 export const activeStaff = activeEmployees;
 
-export async function counts() {
-  return (await db.get(`SELECT
-    (SELECT COUNT(*) FROM requests WHERE status='Pending Review') AS pending,
-    (SELECT COUNT(*) FROM requests WHERE status NOT IN ('Completed','Cancelled','Rejected')) AS open_requests,
-    (SELECT COUNT(*) FROM bookings WHERE status='Confirmed') AS confirmed,
-    (SELECT COUNT(*) FROM bookings WHERE status='Completed') AS completed,
-    (SELECT COUNT(*) FROM customers) AS customers,
-    (SELECT COUNT(*) FROM messages WHERE handled=0) AS messages`))!;
-}
-
-export async function staffDashboard(me: Row) {
-  const [mine, newest] = await Promise.all([
-    db.all(`SELECT r.id,r.ref,r.status,r.service_type,c.name AS customer FROM requests r JOIN customers c ON c.id=r.customer_id
-      WHERE r.assigned_to=? AND r.status NOT IN ('Completed','Cancelled','Rejected') ORDER BY r.id DESC LIMIT 8`, [me.id]),
-    db.all(`SELECT r.id,r.ref,r.service_type,r.created_at,c.name AS customer FROM requests r JOIN customers c ON c.id=r.customer_id WHERE r.status='Pending Review' ORDER BY r.id DESC LIMIT 8`),
-  ]);
-  return { mine, newest };
-}
-
-export interface ChartData {
-  months: string[]; sales: number[]; collected: number[]; expenses: number[]; net: number[];
-  byService: { k: string; n: number }[]; byStatus: { k: string; n: number }[]; inquiries: number[];
-  attMonthly: number[]; attMonths: string[]; perEmp: { n: string; late: number; absent: number }[];
-}
-
-export async function ownerDashboard(from: string, to: string) {
-  const today = U.today();
-  const f = await B.finance(from, to);
-  const newInq = (await db.val('SELECT COUNT(*) FROM requests WHERE SUBSTR(created_at,1,10) BETWEEN ? AND ?', [from, to])) ?? 0;
-  const staff = await activeStaff();
-  const ids = new Set(staff.map((u) => u.id));
-  const todayRecs = (await db.all('SELECT * FROM attendance WHERE day=?', [today])).filter((r) => ids.has(r.user_id));
-  const todayRows = await Promise.all(staff.map(async (u) => (await B.daily(u, today, today))[0]));
-  const emp = {
-    active: staff.length, timedIn: todayRecs.length, clockedIn: todayRecs.filter((r) => r.time_in && !r.time_out).length,
-    late: todayRecs.filter((r) => r.is_late).length, absent: todayRows.filter((r) => r && r.status === 'Absent').length,
-    incomplete: (await db.val(`SELECT COUNT(*) FROM attendance WHERE time_out IS NULL AND day<? AND day BETWEEN ? AND ?`, [today, from, to])) ?? 0,
-  };
-  const months = U.monthsBack(to, 12);
-  const series = await Promise.all(months.map(async (m) => { const [a, z] = U.monthRange(m); const x = await B.finance(a, z); return { sales: x.booking_sales, collected: x.collected, expenses: x.expenses, net: x.net }; }));
-  const byService = await db.all<{ k: string; n: number }>(`SELECT service_type AS k, COUNT(*) AS n FROM bookings WHERE status!='Cancelled' AND SUBSTR(created_at,1,10) BETWEEN ? AND ? GROUP BY 1`, [from, to]);
-  const byStatus = await db.all<{ k: string; n: number }>(`SELECT status AS k, COUNT(*) AS n FROM bookings WHERE SUBSTR(created_at,1,10) BETWEEN ? AND ? GROUP BY 1`, [from, to]);
-  const inquiries = await Promise.all(months.map(async (m) => (await db.val(`SELECT COUNT(*) FROM requests WHERE SUBSTR(created_at,1,7)=?`, [m])) ?? 0));
-  const attMonths = months.slice(-6);
-  const attMonthly = await Promise.all(attMonths.map(async (m) => (await db.val(`SELECT COUNT(*) FROM attendance WHERE SUBSTR(day,1,7)=?`, [m])) ?? 0));
-  const perEmp = await Promise.all(staff.map(async (u) => { const s = B.summarize(u, await B.daily(u, from, to)); return { n: u.name as string, late: s.late, absent: s.absent }; }));
-  const chart: ChartData = {
-    months, sales: series.map((s) => s.sales / 100), collected: series.map((s) => s.collected / 100), expenses: series.map((s) => s.expenses / 100),
-    net: series.map((s) => s.net / 100), byService, byStatus, inquiries, attMonthly, attMonths, perEmp,
-  };
-  return { f, newInq, emp, chart };
-}
-
 /** Per-employee status rows for one day (attendance monitor + CSV). */
 export async function dayRows(day: string) {
   return Promise.all((await activeStaff()).map(async (u) => ({ u, d: ((await B.daily(u, day, day))[0] || { status: 'Future', rec: null, mins: 0, late_min: 0 }) as Row })));
@@ -119,18 +66,9 @@ export function auditFilter(q: Record<string, string>) {
   return { sql: `SELECT * FROM audit_logs ${w.length ? 'WHERE ' + w.join(' AND ') : ''} ORDER BY id DESC`, p };
 }
 
-/** Finance extras (by service, expenses by category, outstanding list). */
-export async function financeDetail(from: string, to: string) {
-  const byService = await db.all(`SELECT service_type AS k, COUNT(*) AS n, SUM(selling_price+service_fee-discount) AS sales, SUM(supplier_cost) AS cost, SUM(service_fee) AS fees
-    FROM bookings WHERE status IN ('Confirmed','Completed') AND SUBSTR(created_at,1,10) BETWEEN ? AND ? GROUP BY 1 ORDER BY sales DESC`, [from, to]);
-  const expCat = await db.all(`SELECT category AS k, SUM(amount) AS total FROM expenses WHERE status='Valid' AND spent_at BETWEEN ? AND ? GROUP BY 1 ORDER BY total DESC`, [from, to]);
-  const owing = (await db.all(`SELECT * FROM (${B.bookingSelect}) x WHERE status IN ('Confirmed','Completed')`)).map(B.decorate).filter((b) => b.balance > 0).sort((a, b) => b.balance - a.balance).slice(0, 15);
-  return { byService, expCat, owing };
-}
-
 export const CONTENT_KEYS = ['business_name', 'tagline', 'location', 'phone', 'mobile', 'email', 'address', 'map_url', 'hours', 'facebook', 'facebook_name', 'instagram', 'about', 'mission', 'vision', 'values', 'fares_title', 'fares_note', 'fares', 'partners', 'why', 'privacy'];
 export const LONG_KEYS = ['privacy', 'about', 'fares', 'why', 'fares_note', 'partners', 'mission', 'vision'];
-export const SYSTEM_KEYS = ['retention_years'];
+export const SYSTEM_KEYS = ['retention_years', 'office_lat', 'office_lng', 'office_radius'];
 
 /** Today's attendance counts for the owner dashboard (active employees only). */
 export async function attendanceToday() {

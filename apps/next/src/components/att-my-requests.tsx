@@ -9,6 +9,7 @@ import { hrs, longDate, peso } from '@/lib/util';
 import { pct } from '@/lib/deduction-shared';
 import { ApiForm, Field, Submit } from './form';
 import { Modal } from './modal';
+import { DateField } from './date-time-picker';
 
 const span = (a: string, b: string) => (a === b ? longDate(a) : `${longDate(a)} – ${longDate(b)}`);
 
@@ -20,8 +21,8 @@ function RequestForm({ today, onClose }: { today: string; onClose: () => void })
         <ApiForm action="/api/attendance/requests" stay onDone={(d) => { if (d.ok) close(); }}>
           <Field name="kind" label="Type *" type="select" emptyLabel={null} options={LEAVE_KINDS} />
           <div className="grid g2">
-            <div className="field"><label htmlFor="rq-from">From *</label><input id="rq-from" type="date" name="from_day" required value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-            <Field name="to_day" label="To" type="date" attrs={{ min: from }} hint="Leave blank for a single day." />
+            <DateField name="from_day" label="From *" defaultValue={today} today={today} required onChange={setFrom} />
+            <div><DateField key={from} name="to_day" label="To" min={from} today={today} /><div className="small muted">Leave blank for a single day.</div></div>
           </div>
           <Field name="reason" label="Reason / details *" type="textarea" attrs={{ required: true, maxLength: 1000, rows: 3 }} />
           <p className="small muted">The owner or an admin will approve or decline it. Approved days show as approved leave in your attendance.</p>

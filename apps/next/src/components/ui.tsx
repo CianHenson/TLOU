@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { FlashBar } from './flash';
 import { MenuButton } from './widgets';
+import { HeaderActions } from './header-actions';
 import type { Page } from '@/lib/list';
 import { dt12 } from '@/lib/util';
 
@@ -27,8 +28,7 @@ export function Page({ title, actions, filters, children }: { title: string; act
     <>
       <header className="mhead">
         <div className="mh-title"><MenuButton /><h1>{title}</h1></div>
-        {filters && <div className="mh-tools">{filters}</div>}
-        {actions && <div className="row noprint mh-actions">{actions}</div>}
+        {(filters || actions) && <HeaderActions filters={filters}>{actions}</HeaderActions>}
       </header>
       <FlashBar toast />
       {children}
@@ -53,18 +53,7 @@ export function SortTh({ list, label, k, cls = '' }: { list: Pick<Page, 'qs'>; l
   return <th className={cls}><Link href={`?${p.toString()}`}>{label}{cur ? (dir === 'asc' ? ' ▲' : ' ▼') : ''}</Link></th>;
 }
 
-/**
- * One-line table footer used by every list table: the record count on the left ("All records: N", or "Selected records:
- * x/N" in the gold selection style while rows are selected) and, only where the table has one, a total on the right edge.
- */
-export function FootLine({ cols, total, selected = 0, right }: { cols: number; total: number; selected?: number; right?: ReactNode }) {
-  return (
-    <tfoot><tr className={selected ? 'sel-total' : undefined}><td colSpan={cols}><div className="foot-line">
-      <span>{selected ? `Selected records: ${selected}/${total}` : `All records: ${total}`}</span>
-      {right != null && right !== false && <span>{right}</span>}
-    </div></td></tr></tfoot>
-  );
-}
+export { FootLine } from './foot-line';
 
 /** Page links; nothing on a single page (the table's FootLine already shows the record count). */
 export function Pager({ list }: { list: Pick<Page, 'page' | 'pages' | 'total' | 'qs'> }) {

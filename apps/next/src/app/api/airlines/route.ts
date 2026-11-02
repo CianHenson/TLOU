@@ -11,7 +11,7 @@ export const POST = api(async (req) => {
   const { a, errors } = airlineInput(b);
   if (!errors.name && await db.get('SELECT 1 FROM airlines WHERE name=?', [a.name])) errors.name = 'This airline is already in the list.';
   if (Object.keys(errors).length) return invalid(errors);
-  const id = (await db.run('INSERT INTO airlines (name,code,active,created_by,created_at) VALUES (?,?,?,?,?)', [a.name, a.code || null, a.active, user.id, now()])).id;
+  const id = (await db.run('INSERT INTO airlines (name,active,created_by,created_at) VALUES (?,?,?,?)', [a.name, a.active, user.id, now()])).id;
   await audit({ user, ip: clientIp(req) }, 'airline.create', 'airline', id, a);
   return ok(`${a.name} added. It is now available in Airfare Sales.`);
 });

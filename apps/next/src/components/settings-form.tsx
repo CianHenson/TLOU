@@ -6,6 +6,9 @@ const HINTS: Record<string, string> = {
   fares: 'One fare per line: Route|Amount, e.g. Manila to Palawan|2714',
   why: 'One point per line: Title|Description',
   partners: 'Comma-separated list',
+  office_lat: 'Office latitude for Time In. In Google Maps, right-click the office pin and click the coordinates to copy. Leave blank to turn the location check off.',
+  office_lng: 'Office longitude (the second number of the coordinates).',
+  office_radius: 'Allowed distance from the office in metres (e.g. 150).',
   facebook: 'Full page link starting with https:// (shows as a clickable link)',
 };
 

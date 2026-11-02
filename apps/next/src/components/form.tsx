@@ -8,7 +8,7 @@ import { useFlash } from './flash';
 interface FormState { pending: boolean; errors: Record<string, string> }
 const FormCtx = createContext<FormState>({ pending: false, errors: {} });
 
-export function ApiForm({ action, children, className, style, reset, redirect, stay, confirm, onDone }: {
+export function ApiForm({ action, children, className, style, reset, redirect, stay, confirm, onDone, prepare }: {
   action: string; children: ReactNode; className?: string; style?: CSSProperties;
   /** Clear the inputs after success. */
   reset?: boolean;
@@ -19,6 +19,8 @@ export function ApiForm({ action, children, className, style, reset, redirect, s
   /** window.confirm() text before submitting. */
   confirm?: string;
   onDone?: (data: { ok: boolean; [k: string]: unknown }) => void;
+  /** Runs before posting; may add fields to the FormData. Return an error message to stop the submit. */
+  prepare?: (fd: FormData) => Promise<string | void>;
 }) {
   const router = useRouter();
   const { show } = useFlash();
@@ -34,7 +36,10 @@ export function ApiForm({ action, children, className, style, reset, redirect, s
     setState({ pending: true, errors: {} });
     let data: { ok: boolean; msg?: string; redirect?: string; errors?: Record<string, string> };
     try {
-      const res = await fetch(action, { method: 'POST', body: new FormData(form, submitter), credentials: 'same-origin' });
+      const body = new FormData(form, submitter);
+      const problem = await prepare?.(body);
+      if (problem) { setState({ pending: false, errors: {} }); show('err', problem); return; }
+      const res = await fetch(action, { method: 'POST', body, credentials: 'same-origin' });
       data = await res.json();
       if (res.status === 401) { router.push('/login'); return; }
     } catch {

@@ -1,15 +1,14 @@
-import { api, ok, fail, clientIp } from '@/lib/http';
-import { apiUser } from '@/lib/auth';
+import { api, ok, fail } from '@/lib/http';
+import { apiUser, isOwner } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { audit } from '@/lib/biz';
+import { moveToTrash } from '@/lib/queries/trash';
 
-/** Owner only: removes a wrongly entered sale. The full row is kept in the audit log. */
+/** Moves a sale to the Trash / Delete Archive (never erased). Owner / admin: any sale. Staff: only the sales they added themselves. */
 export const POST = api(async (req, ctx) => {
-  const user = await apiUser('owner');
+  const user = await apiUser();
   const { id } = await ctx.params;
-  const old = /^\d+$/.test(id) ? await db.get('SELECT * FROM airfare_sales WHERE id=?', [id]) : undefined;
+  const old = /^\d+$/.test(id) ? await db.get(`SELECT * FROM airfare_sales WHERE id=? ${isOwner(user) ? '' : 'AND user_id=?'}`, isOwner(user) ? [id] : [id, user.id]) : undefined;
   if (!old) return fail('Sale not found.', 404);
-  await db.run('DELETE FROM airfare_sales WHERE id=?', [old.id]);
-  await audit({ user, ip: clientIp(req) }, 'airfare.delete', 'airfare', old.id, old);
+  await moveToTrash('airfare', [old], user, req);
   return ok('Airfare sale deleted.', { redirect: '/app/airfare' });
 });

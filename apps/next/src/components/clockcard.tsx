@@ -1,6 +1,7 @@
 // Attendance card (dashboards): Time In -> Break Out -> Break In -> Time Out. Each button is enabled only when the previous step
 // is done; the server enforces the same order (lib/queries/clock.ts). `bar` renders the compact horizontal version.
 import { ApiForm, Submit } from './form';
+import { GeoForm } from './geo-form';
 import { Clock } from './widgets';
 import { Badge } from './ui';
 import * as U from '@/lib/util';
@@ -29,9 +30,10 @@ function Times({ rec }: { rec: Row | null | undefined }) {
 export function ClockCard({ name, rec, mins, bar = false }: { name: string; rec: Row | null | undefined; mins: number; bar?: boolean }) {
   const st = attStage(rec);
   const next = { none: 'Time In', in: 'Break Out', break: 'Break In', back: 'Time Out', done: '' }[st];
-  const btn = (action: string, label: string, mine: typeof st, alt = false) => (
-    <ApiForm action={action}><Submit className={alt ? 'btn alt' : 'btn'} disabled={st !== mine}>{label}</Submit></ApiForm>
-  );
+  const btn = (action: string, label: string, mine: typeof st, alt = false) => {
+    const Form = mine === 'none' ? GeoForm : ApiForm; // Time In also sends the device location (must be at the office)
+    return <Form action={action}><Submit className={alt ? 'btn alt' : 'btn'} disabled={st !== mine}>{label}</Submit></Form>;
+  };
   const buttons = (
     <div className="row cb-btns">
       {btn('/api/attendance/in', 'Time In', 'none')}

@@ -12,6 +12,13 @@ import { useRowSelection } from './row-select';
 import { Modal, PlusButton, usePost } from './modal';
 import { FootLine } from './ui';
 import { pct } from '@/lib/deduction-shared';
+import { SortGroupItems, useGroupOf, type SortGroup } from './sort-group';
+import { groupedRows, monthOf } from './group-rows';
+
+const SG: SortGroup = {
+  sorts: [['name', 'Employee'], ['period', 'Payroll period'], ['days', 'Working days'], ['hours', 'Total hours'], ['rate', 'Hourly rate'], ['basic', 'Basic pay'], ['adjustments', 'Adjustments'], ['gross', 'Gross'], ['deductions', 'Deductions'], ['net', 'Net pay']],
+  groups: [['name', 'Employee'], ['kind', 'Period type'], ['month', 'Period month']],
+};
 
 const add = (d: string, n: number) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 /** Same rules as the server's payPeriod(). */
@@ -22,6 +29,8 @@ function period(kind: string, from: string, to: string): [string, string] {
   if (kind === 'Monthly') { const [y, m] = from.split('-').map(Number); return [`${from.slice(0, 7)}-01`, add(m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`, -1)]; }
   return [from, to];
 }
+/** '2026-10-31' -> '10-31-2026' */
+const mdy = (d: string) => `${d.slice(5, 7)}-${d.slice(8, 10)}-${d.slice(0, 4)}`;
 const span = (a: string, b: string) => (a === b ? longDate(a) : `${longDate(a)} – ${longDate(b)}`);
 
 const GENERATE_EVT = 'payroll:new';
@@ -94,6 +103,7 @@ export function PayrollTable({ rows }: { rows: Row[] }) {
     const d = await post(`/api/payroll/${r.id}/delete`);
     if (d.ok) setSel(new Set());
   };
+  const groupOf = useGroupOf<Row>({ name: (r) => r.name, kind: (r) => r.period_kind, month: (r) => monthOf(r.period_from) });
   const picked = rows.filter((r) => sel.has(Number(r.id)));
   const sum = (list: Row[], k: string) => list.reduce((a, r) => a + Number(r[k] || 0), 0);
   const one = menu && menu.ids.length === 1 ? rows.find((r) => Number(r.id) === menu.ids[0]) : undefined;
@@ -102,10 +112,10 @@ export function PayrollTable({ rows }: { rows: Row[] }) {
       <table><colgroup><col style={{ width: '13%' }} /><col style={{ width: '19%' }} /><col style={{ width: '7%' }} /><col style={{ width: '7%' }} /><col style={{ width: '9%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10%' }} /></colgroup><thead><tr><th>Employee</th><th>Payroll period</th><th className="num">Working days</th><th className="num">Total hours</th><th className="num">Hourly rate</th>
         <th className="num">Basic pay</th><th className="num">Adjustments</th><th className="num">Gross</th><th className="num">Deductions</th><th className="num">Net pay</th></tr></thead>
         <tbody>
-          {rows.map((r, i) => (
+          {groupedRows(rows, groupOf, 10, (r, i) => (
             <tr key={r.id} {...rowProps(i)} onDoubleClick={() => open(Number(r.id))}>
-              <td>{r.name}<div className="small muted">{r.designation || ''}</div></td>
-              <td className="nowrap">{span(r.period_from, r.period_to)}<div className="small muted">{r.period_kind} · generated {r.created_at.slice(0, 10)}</div></td>
+              <td>{r.name}</td>
+              <td className="nowrap">{r.period_from === r.period_to ? mdy(r.period_from) : `${mdy(r.period_from)} – ${mdy(r.period_to)}`}</td>
               <td className="num">{r.days}{r.incomplete ? <div className="small muted">{r.incomplete} incomplete</div> : null}</td>
               <td className="num">{hrs(r.minutes)}</td><td className="num nowrap">{peso(r.hourly_rate)}</td><td className="num nowrap">{peso(r.basic_pay)}</td>
               <td className="num" title={r.adjustment_note || undefined}>{r.adjustments ? peso(r.adjustments) : '—'}{r.adjustment_note && <div className="small muted">{r.adjustment_note}</div>}</td>
@@ -125,6 +135,7 @@ export function PayrollTable({ rows }: { rows: Row[] }) {
       {menu && (one || !menu.ids.length) && (
         <div className="ctx-menu" role="menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
           {!menu.ids.length && <button type="button" role="menuitem" onClick={() => { setMenu(null); window.dispatchEvent(new Event(GENERATE_EVT)); }}>Generate payroll</button>}
+          {!menu.ids.length && <SortGroupItems sg={SG} done={() => setMenu(null)} />}
           {one && <>
             <button type="button" role="menuitem" onClick={() => open(Number(one.id))}>Generate payslip</button>
             <button type="button" role="menuitem" className="danger" onClick={() => remove(one)}>Delete</button>

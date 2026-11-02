@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ApiForm, Field, Submit } from './form';
 
 export interface EmployeeFormValues {
-  id?: number; first_name?: string; last_name?: string; email?: string; role: string; designation?: string; active: number; can_expenses?: number;
+  id?: number; first_name?: string; last_name?: string; email?: string; role: string; designation?: string; active: number; can_expenses?: number; can_messages?: number;
 }
 
 export const NEW_USER: EmployeeFormValues = { role: 'employee', active: 1 };
@@ -28,13 +28,23 @@ export function EmployeeForm({ e, isNew, onClose }: { e: EmployeeFormValues; isN
               hint="Admins have the same access as the owner." />}
         <Field name="designation" label="Designation" defaultValue={e.designation} hint="Job title, e.g. Ticketing Officer." attrs={{ maxLength: 80 }} />
         <Field name="email" label="Email (used to log in) *" type="email" defaultValue={e.email} attrs={{ required: true, maxLength: 160, autoComplete: "off" }} />
-        <Field name="password" label={isNew ? 'Initial password *' : 'Reset password (leave blank to keep)'} type="password" attrs={{ autoComplete: 'new-password', minLength: 8, required: isNew }}
-          hint="Min 8 characters, first letter capital, with a number. The user must change it at first login." />
-        {/* The owner already sees every module, so there is nothing to grant (and the account always stays active). */}
-        {!owner && <div className="field"><label>Permissions</label>
-          <label style={{ fontWeight: 400 }}><input type="checkbox" name="can_expenses" defaultChecked={!!e.can_expenses} /> Can record/view business expenses</label>
-          <label style={{ fontWeight: 400 }}><input type="checkbox" name="active" defaultChecked={!!e.active} /> Account active</label></div>}
+        {isNew
+          ? <div className="field"><label>Initial password</label><div className="small muted">New accounts start with the password <strong>Alchemist1</strong>. The user must change it at first login.</div></div>
+          : <Field name="password" label="Reset password (leave blank to keep)" type="password" attrs={{ autoComplete: 'new-password', minLength: 8 }}
+              hint="Min 8 characters, first letter capital, with a number. The user must change it at next login." />}
       </div>
+      {!owner && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="small" style={{ fontWeight: 600, marginBottom: 6 }}>Module access (staff only)</div>
+          <label className="small" style={{ display: 'block', marginBottom: 6 }}>
+            <input type="checkbox" name="can_expenses" defaultChecked={!!e.can_expenses} /> Allow access to Monitoring Finances
+          </label>
+          <label className="small" style={{ display: 'block' }}>
+            <input type="checkbox" name="can_messages" defaultChecked={!!e.can_messages} /> Allow access to Messages
+          </label>
+          <span className="small muted" style={{ display: 'block', marginTop: 4 }}>Admins and the owner always have access.</span>
+        </div>
+      )}
       <div className="row"><Submit>{isNew ? 'Add user' : 'Save'}</Submit> {onClose
         ? <button type="button" className="btn ghost" onClick={onClose}>Cancel</button>
         : <Link className="btn ghost" href="/app/employees">Cancel</Link>}</div>

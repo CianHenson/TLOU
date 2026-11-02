@@ -18,9 +18,9 @@ export const allEmployees = () => db.all(`SELECT ${UCOLS}, e.id AS employee_id, 
 export const activeEmployees = () => db.all(`SELECT ${UCOLS}, e.id AS employee_id, e.hourly_rate, e.active FROM employees e JOIN users u ON u.id=e.user_id
   WHERE e.active=1 AND u.active=1 ORDER BY u.name`);
 
-/** Registered Staff accounts that can still be added as employees (owner / admins never appear). */
+/** Registered Staff and Admin accounts that can still be added as employees (the owner never appears). */
 export const availableUsers = () => db.all(`SELECT id, name, email, designation FROM users
-  WHERE role='employee' AND active=1 AND id NOT IN (SELECT user_id FROM employees) ORDER BY name`);
+  WHERE role IN ('employee','admin') AND active=1 AND id NOT IN (SELECT user_id FROM employees) ORDER BY name`);
 
 /** The active employee record for a user, if any. */
 export const employeeOf = (userId: number) => db.get(`SELECT e.* FROM employees e JOIN users u ON u.id=e.user_id WHERE e.user_id=? AND e.active=1 AND u.active=1`, [userId]);

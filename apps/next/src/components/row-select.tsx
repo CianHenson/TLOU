@@ -113,11 +113,13 @@ export function useRowSelection(ids: number[], menuHeight = 110) {
   }, [menu]);
 
   /**
-   * For the table wrapper's onContextMenu: right-click on empty space (not a row or the header) clears the selection and
-   * opens the menu with no ids, which tables use for their "add" action (New sale, Add user, …).
+   * For the table wrapper's onContextMenu: right-click on empty space or on the column header (not a row) clears the selection
+   * and opens the menu with no ids, which tables use for their "add" action (New sale, Add user, …). Sort links in the
+   * header count as header space; other links and controls keep the browser menu.
    */
   const emptyMenu = (e: React.MouseEvent) => {
-    if ((e.target as Element).closest('tr[data-id], thead, tfoot, a, button, input, select, textarea, label')) return;
+    const t = e.target as Element;
+    if (t.closest(t.closest('thead') ? 'tr[data-id], button, input, select, textarea, label' : 'tr[data-id], tfoot, a, button, input, select, textarea, label')) return;
     e.preventDefault();
     setSel(new Set());
     setMenu({ x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 60), ids: [] });

@@ -33,28 +33,11 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS notes (
     id INT AUTO_INCREMENT PRIMARY KEY, entity VARCHAR(30) NOT NULL, entity_id INT NOT NULL, body TEXT NOT NULL,
     user_id INT NULL, at VARCHAR(19) NOT NULL, INDEX ix_notes (entity, entity_id), FOREIGN KEY (user_id) REFERENCES users(id))`,
-  `CREATE TABLE IF NOT EXISTS bookings (
-    id INT AUTO_INCREMENT PRIMARY KEY, ref VARCHAR(30) UNIQUE, customer_id INT NOT NULL, request_id INT NULL, service_type VARCHAR(40) NOT NULL,
-    supplier VARCHAR(160), details TEXT, supplier_cost BIGINT NOT NULL DEFAULT 0, selling_price BIGINT NOT NULL DEFAULT 0,
-    service_fee BIGINT NOT NULL DEFAULT 0, discount BIGINT NOT NULL DEFAULT 0, status VARCHAR(12) NOT NULL DEFAULT 'Quoted',
-    assigned_to INT NULL, confirmation_ref VARCHAR(80), remarks TEXT, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NULL,
-    INDEX ix_bk_cust (customer_id), CONSTRAINT ck_bk_status CHECK (status IN ('Quoted','Confirmed','Completed','Cancelled')),
-    FOREIGN KEY (customer_id) REFERENCES customers(id), FOREIGN KEY (request_id) REFERENCES requests(id), FOREIGN KEY (assigned_to) REFERENCES users(id))`,
-  `CREATE TABLE IF NOT EXISTS payments (
-    id INT AUTO_INCREMENT PRIMARY KEY, ref VARCHAR(30) UNIQUE, booking_id INT NOT NULL, customer_id INT NOT NULL, paid_at CHAR(10) NOT NULL,
-    amount BIGINT NOT NULL, method VARCHAR(30) NOT NULL, reference VARCHAR(80), kind VARCHAR(10) NOT NULL DEFAULT 'Payment',
-    status VARCHAR(10) NOT NULL DEFAULT 'Valid', remarks TEXT, user_id INT NULL, reversed_by INT NULL, reversed_reason TEXT,
-    created_at VARCHAR(19) NOT NULL, INDEX ix_pay_bk (booking_id),
-    CONSTRAINT ck_pay_amt CHECK (amount > 0), CONSTRAINT ck_pay_kind CHECK (kind IN ('Payment','Refund')), CONSTRAINT ck_pay_status CHECK (status IN ('Valid','Reversed')),
-    FOREIGN KEY (booking_id) REFERENCES bookings(id), FOREIGN KEY (customer_id) REFERENCES customers(id), FOREIGN KEY (user_id) REFERENCES users(id))`,
   `CREATE TABLE IF NOT EXISTS expenses (
     id INT AUTO_INCREMENT PRIMARY KEY, spent_at CHAR(10) NOT NULL, category VARCHAR(40) NOT NULL, amount BIGINT NOT NULL, method VARCHAR(30),
     description TEXT, receipt VARCHAR(80), user_id INT NULL, status VARCHAR(10) NOT NULL DEFAULT 'Valid', void_reason TEXT,
     created_at VARCHAR(19) NOT NULL, CONSTRAINT ck_exp_amt CHECK (amount > 0), CONSTRAINT ck_exp_status CHECK (status IN ('Valid','Voided')),
     FOREIGN KEY (user_id) REFERENCES users(id))`,
-  `CREATE TABLE IF NOT EXISTS documents (
-    id INT AUTO_INCREMENT PRIMARY KEY, booking_id INT NOT NULL, stored VARCHAR(80) NOT NULL, original VARCHAR(200) NOT NULL,
-    user_id INT NULL, at VARCHAR(19) NOT NULL, FOREIGN KEY (booking_id) REFERENCES bookings(id), FOREIGN KEY (user_id) REFERENCES users(id))`,
   `CREATE TABLE IF NOT EXISTS attendance (
     id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, day CHAR(10) NOT NULL, time_in VARCHAR(19), time_out VARCHAR(19),
     is_late TINYINT NOT NULL DEFAULT 0, late_min INT NOT NULL DEFAULT 0, UNIQUE KEY uq_att (user_id, day), FOREIGN KEY (user_id) REFERENCES users(id))`,
@@ -97,13 +80,15 @@ const TABLES = [
     total_amount BIGINT NOT NULL DEFAULT 0, service_charge BIGINT NOT NULL DEFAULT 0, card_fee BIGINT NOT NULL DEFAULT 0, remarks TEXT,
     user_id INT NULL, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NULL,
     INDEX ix_af_txn (txn_date), INDEX ix_af_travel (travel_date), INDEX ix_af_pnr (pnr), FOREIGN KEY (user_id) REFERENCES users(id))`,
+  // Trash / Delete Archive. A deleted airfare sale or expense is moved here as a full JSON snapshot, never erased: the staff member who
+  // deleted it can restore it (or hide it for good) for 30 days, and the owner / admin can always restore it from the Delete Archive.
+  `CREATE TABLE IF NOT EXISTS trash (
+    id INT AUTO_INCREMENT PRIMARY KEY, kind VARCHAR(12) NOT NULL, entity_id INT NOT NULL, label VARCHAR(200) NOT NULL, detail VARCHAR(300) NULL,
+    amount BIGINT NULL, data MEDIUMTEXT NOT NULL, deleted_by INT NOT NULL, deleted_role VARCHAR(10) NOT NULL, deleted_at VARCHAR(19) NOT NULL,
+    hidden_at VARCHAR(19) NULL, restored_at VARCHAR(19) NULL, restored_by INT NULL, INDEX ix_trash_user (deleted_by, deleted_at), INDEX ix_trash_open (restored_at, deleted_at))`,
   `CREATE TABLE IF NOT EXISTS messages (
     id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120), email VARCHAR(160), phone VARCHAR(40), body TEXT, at VARCHAR(19) NOT NULL,
     handled TINYINT NOT NULL DEFAULT 0)`,
-  // Dashboard announcements: every post / edit / removal is a row (empty body = removed); the newest row is the current one.
-  `CREATE TABLE IF NOT EXISTS announcements (
-    id INT AUTO_INCREMENT PRIMARY KEY, body TEXT NOT NULL, user_id INT NULL, user_name VARCHAR(120), at VARCHAR(19) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL)`,
   // Staff requests to correct one attendance day (changes = JSON [{field,value}]); the owner / admin approves (applies it) or declines with a reason.
   `CREATE TABLE IF NOT EXISTS attendance_correction_requests (
     id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, day CHAR(10) NOT NULL, changes TEXT NOT NULL, reason TEXT NOT NULL,
@@ -113,10 +98,6 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS airlines (
     id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(80) NOT NULL, code VARCHAR(8) NULL, active TINYINT NOT NULL DEFAULT 1,
     created_by INT NULL, created_at VARCHAR(19) NOT NULL, updated_at VARCHAR(19) NULL, UNIQUE KEY uq_airline_name (name))`,
-  // Dashboard announcements, one row per post. At most two are pinned at a time (enforced in /api/announcement). Removed posts keep their row (deleted_at).
-  `CREATE TABLE IF NOT EXISTS announcement_posts (
-    id INT AUTO_INCREMENT PRIMARY KEY, body TEXT NOT NULL, user_id INT NULL, user_name VARCHAR(120), created_at VARCHAR(19) NOT NULL,
-    updated_at VARCHAR(19) NULL, pinned TINYINT NOT NULL DEFAULT 0, pinned_at VARCHAR(19) NULL, deleted_at VARCHAR(19) NULL, INDEX ix_annp (deleted_at, pinned))`,
   // Payroll deductions set up by the owner / admin. kind and basis leave room for fixed amounts and other calculation bases later.
   // Rates live in deduction_rates (one row per change, with the date it takes effect), so history is kept and old payroll never changes.
   `CREATE TABLE IF NOT EXISTS deductions (
@@ -159,6 +140,8 @@ const DEFAULT_SETTINGS:Record<string, string> = {
   ].join('\n'),
   privacy: 'We collect your name, contact details and travel requirements only to respond to your request and to process bookings you approve. We do not sell your information. Access is limited to authorized staff, and records are kept only as long as needed for service, accounting and legal obligations, in line with the Philippine Data Privacy Act of 2012 (RA 10173). You may ask to access, correct or delete your data by contacting us.',
   retention_years: '5',
+  // Time In is only allowed within office_radius metres of these coordinates (blank latitude/longitude turns the check off).
+  office_lat: '9.7554141', office_lng: '118.751908', office_radius: '150',
 };
 
 const SERVICES: [string, string, string, string][] = [
@@ -171,11 +154,14 @@ const SERVICES: [string, string, string, string][] = [
 ];
 
 export async function ensureSchema(d: Db) {
+  // The Transactions & Payments module (bookings, payments, booking documents) was removed; its tables are dropped (children first).
+  await d.run('DROP TABLE IF EXISTS documents, payments, bookings');
   for (const t of TABLES) await d.run(t);
   // Columns added after the first release (CREATE TABLE IF NOT EXISTS leaves existing tables untouched).
   const hasCol = async (t: string, c: string) =>
     !!(await d.val('SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name=? AND column_name=?', [t, c]));
   if (!(await hasCol('expenses', 'updated_by'))) await d.run('ALTER TABLE expenses ADD COLUMN updated_by INT NULL, ADD COLUMN updated_at VARCHAR(19) NULL');
+  if (!(await hasCol('users', 'signature'))) await d.run('ALTER TABLE users ADD COLUMN signature VARCHAR(80) NULL');
   if (!(await hasCol('users', 'designation'))) await d.run('ALTER TABLE users ADD COLUMN designation VARCHAR(80) NULL AFTER role');
   // Split names: existing users get the last word of `name` as last name and the rest as first name (`name` stays the full name).
   if (!(await hasCol('users', 'first_name'))) {
@@ -184,10 +170,12 @@ export async function ensureSchema(d: Db) {
       first_name = CASE WHEN LOCATE(' ', TRIM(name)) = 0 THEN TRIM(name) ELSE TRIM(LEFT(TRIM(name), CHAR_LENGTH(TRIM(name)) - CHAR_LENGTH(SUBSTRING_INDEX(TRIM(name), ' ', -1)))) END,
       last_name = CASE WHEN LOCATE(' ', TRIM(name)) = 0 THEN '' ELSE SUBSTRING_INDEX(TRIM(name), ' ', -1) END`);
   }
-  if (!(await hasCol('announcements', 'pinned'))) await d.run('ALTER TABLE announcements ADD COLUMN pinned TINYINT NOT NULL DEFAULT 0');
   if (!(await hasCol('leaves', 'request_id'))) await d.run('ALTER TABLE leaves ADD COLUMN request_id INT NULL');
   // Break workflow (Time In -> Break Out -> Break In -> Time Out).
   if (!(await hasCol('attendance', 'break_out'))) await d.run('ALTER TABLE attendance ADD COLUMN break_out VARCHAR(19) NULL AFTER time_in, ADD COLUMN break_in VARCHAR(19) NULL AFTER break_out');
+  // Where the device was when staff timed in (checked against the office location), kept so the owner can review it.
+  if (!(await hasCol('users', 'can_messages'))) await d.run('ALTER TABLE users ADD COLUMN can_messages TINYINT NOT NULL DEFAULT 0');
+  if (!(await hasCol('attendance', 'in_lat'))) await d.run('ALTER TABLE attendance ADD COLUMN in_lat DOUBLE NULL, ADD COLUMN in_lng DOUBLE NULL, ADD COLUMN in_dist INT NULL');
   // Payroll now has deductions: gross = basic + adjustments, net = gross - total deductions (older rows keep NULL = no deductions).
   if (!(await hasCol('payroll', 'gross_pay'))) await d.run('ALTER TABLE payroll ADD COLUMN gross_pay BIGINT NULL AFTER adjustment_note, ADD COLUMN total_deductions BIGINT NOT NULL DEFAULT 0 AFTER gross_pay');
   // Every Staff account must be an employee record to clock in; accounts created through User Management used to miss it.
@@ -196,14 +184,6 @@ export async function ensureSchema(d: Db) {
   if (!(await d.val('SELECT COUNT(*) FROM airlines'))) {
     const used = await d.all<{ airline: string }>(`SELECT DISTINCT airline FROM airfare_sales WHERE airline<>''`);
     for (const a of [...new Set([...AIRLINES, ...used.map((r) => r.airline)])]) await d.run('INSERT IGNORE INTO airlines (name,active,created_at) VALUES (?,1,?)', [a, now()]);
-  }
-  // Announcements: carry the current pinned / regular announcement over into the per-post table once.
-  if (!(await d.val("SELECT COUNT(*) FROM settings WHERE k='_announcement_posts_migrated'"))) {
-    for (const pinned of [0, 1]) {
-      const r = await d.get('SELECT body,user_id,user_name,at FROM announcements WHERE pinned=? ORDER BY id DESC LIMIT 1', [pinned]);
-      if (r && r.body) await d.run('INSERT INTO announcement_posts (body,user_id,user_name,created_at,pinned,pinned_at) VALUES (?,?,?,?,?,?)', [r.body, r.user_id, r.user_name, r.at, pinned, pinned ? r.at : null]);
-    }
-    await d.run("INSERT INTO settings (k,v) VALUES ('_announcement_posts_migrated','1')");
   }
   // First run with the employees table: every existing Staff account becomes an employee (rate 0, to be set by the owner),
   // so attendance monitoring keeps covering the people it covered before.
@@ -216,16 +196,6 @@ export async function ensureSchema(d: Db) {
   if (roleCheck && !String(roleCheck).includes('admin')) {
     await d.run('ALTER TABLE users DROP CONSTRAINT ck_user_role');
     await d.run(`ALTER TABLE users ADD CONSTRAINT ck_user_role CHECK (role IN ('owner','admin','employee'))`);
-  }
-  // First run after the history table was added: move the single stored announcement into it.
-  if (!(await d.val("SELECT COUNT(*) FROM announcements"))) {
-    const old = await d.val("SELECT v FROM settings WHERE k='_announcement'");
-    if (old) {
-      await d.run("INSERT INTO announcements (body,user_name,at) VALUES (?,?,?)", [old,
-        (await d.val("SELECT v FROM settings WHERE k='_announcement_by'")) || null,
-        (await d.val("SELECT v FROM settings WHERE k='_announcement_at'")) || now()]);
-    }
-    await d.run("DELETE FROM settings WHERE k LIKE '\\\\_announcement%'");
   }
   const have = new Set((await d.all<{ k: string }>('SELECT k FROM settings')).map((r) => r.k));
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) if (!have.has(k)) await d.run('INSERT INTO settings (k,v) VALUES (?,?)', [k, v]);

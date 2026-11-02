@@ -5,7 +5,7 @@
 //  * Cancelled sales are listed but excluded from every total.
 import 'server-only';
 import { db } from '../db';
-import { where } from '../list';
+import { orderBy, where } from '../list';
 import { CHECKIN_STATUSES } from '../types';
 import { addDays, isDate, now, str, toCents, today } from '../util';
 
@@ -14,6 +14,10 @@ export const airfareFilters = (q: Record<string, string>) => ({
   airlines: [...new Set((q.airline || '').split(',').map((s) => str(s, 80)).filter(Boolean))],
   statuses: (q.status || '').split(',').filter((s) => CHECKIN_STATUSES.includes(s)),
 });
+
+/** Right-click "Sort by" / "Group by" keys → SQL (the table offers the same keys). */
+const SORTS = { txn: 'a.txn_date', airline: 'a.airline', pnr: 'a.pnr', pax: 'a.pax', passenger: 'a.passenger', travel: 'a.travel_date', status: 'a.checkin_status', flight: 'a.flight_no', amount: 'a.total_amount' };
+const GROUPS = { airline: 'a.airline ASC', status: 'a.checkin_status ASC', month: 'SUBSTR(a.txn_date,1,7) DESC', travel: 'a.travel_date DESC' };
 
 export function airfareQuery(q: Record<string, string>): [string, unknown[]] {
   const w = where();
@@ -25,7 +29,7 @@ export function airfareQuery(q: Record<string, string>): [string, unknown[]] {
   if (isDate(q.from)) w.add(`${col}>=?`, q.from);
   if (isDate(q.to)) w.add(`${col}<=?`, q.to);
   const order = q.by === 'travel' ? 'a.travel_date ASC, a.travel_time ASC' : 'a.txn_date DESC, a.id DESC';
-  return [`SELECT a.*, u.name AS recorder FROM airfare_sales a LEFT JOIN users u ON u.id=a.user_id ${w.sql} ORDER BY ${order}`, w.p];
+  return [`SELECT a.*, u.name AS recorder FROM airfare_sales a LEFT JOIN users u ON u.id=a.user_id ${w.sql} ${orderBy(q, SORTS, GROUPS, order, 'a.id DESC')}`, w.p];
 }
 
 /** Totals for any airfare SELECT (wrap the list query). */

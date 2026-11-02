@@ -6,9 +6,11 @@ import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 
 export type DropdownOption = string | [string, string];
 
-export function Dropdown({ options, value, defaultValue = '', onChange, name, ariaLabel, className = '', style }: {
+export function Dropdown({ options, value, defaultValue = '', onChange, name, ariaLabel, className = '', style, placeholder }: {
   options: DropdownOption[]; value?: string; defaultValue?: string; onChange?: (v: string) => void;
   name?: string; ariaLabel: string; className?: string; style?: CSSProperties;
+  /** Shown on the button while no option is chosen (it is not an entry of the list). */
+  placeholder?: string;
 }) {
   const opts = options.map((o) => (Array.isArray(o) ? o : [o, o] as [string, string]));
   const [inner, setInner] = useState(defaultValue);
@@ -55,7 +57,7 @@ export function Dropdown({ options, value, defaultValue = '', onChange, name, ar
       <button ref={btn} type="button" className="dd-btn" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={!!pos}
         aria-controls={pos ? id : undefined} aria-activedescendant={pos ? `${id}-${active}` : undefined}
         onClick={() => (pos ? close() : open())} onKeyDown={key}>
-        <span>{opts.find(([v]) => v === cur)?.[1] ?? cur}</span>
+        <span>{opts.find(([v]) => v === cur)?.[1] ?? (cur || placeholder) ?? cur}</span>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       {pos && (

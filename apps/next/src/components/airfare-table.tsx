@@ -8,8 +8,17 @@ import { hm12, peso } from '@/lib/util';
 import type { Row } from '@/lib/types';
 import { useFlash } from './flash';
 import { FootLine } from './ui';
+import { ModBy } from './mod-by';
 import { useRowSelection } from './row-select';
+import { askConfirm } from './confirm';
 import { NEW_SALE_EVT } from './new-sale-button';
+import { SortGroupItems, useGroupOf, type SortGroup } from './sort-group';
+import { groupedRows, monthOf } from './group-rows';
+
+const SG: SortGroup = {
+  sorts: [['txn', 'Transaction date'], ['airline', 'Airline'], ['pnr', 'PNR'], ['pax', 'PAX'], ['passenger', 'Passenger'], ['travel', 'Travel date'], ['status', 'Check-in'], ['flight', 'Flight no.'], ['amount', 'Total amount']],
+  groups: [['airline', 'Airline'], ['status', 'Check-in status'], ['month', 'Transaction month'], ['travel', 'Travel date']],
+};
 
 const CLS: Record<string, string> = { Pending: 'b-warn', Done: 'b-ok', Rebooked: 'b-info', 'No-show': 'b-err', Cancelled: 'b-err' };
 
@@ -43,15 +52,16 @@ function Peek({ label, children, panel }: { label: ReactNode; children?: never; 
 
 const Line = ({ k, v, c }: { k: string; v: ReactNode; c?: string }) => <div className="peek-line"><span>{k}</span><strong style={c ? { color: c } : undefined}>{v}</strong></div>;
 
-export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: boolean; totals: { n_all: number; total: number; sc: number; fee: number } }) {
+export function AirfareTable({ rows, owner, meId, totals }: { rows: Row[]; owner: boolean; meId: number; totals: { n_all: number; total: number; sc: number; fee: number } }) {
   const router = useRouter();
   const { show } = useFlash();
   const { wrap, sel, setSel, menu, setMenu, rowProps, selBox, emptyMenu } = useRowSelection(rows.map((r) => Number(r.id)));
 
+  const mine = (id: number) => owner || Number(rows.find((r) => Number(r.id) === id)?.user_id) === meId; // the API checks again
   const remove = async (ids: number[]) => {
     setMenu(null);
     const n = ids.length, one = rows.find((r) => Number(r.id) === ids[0]);
-    if (!window.confirm(n === 1 ? `Delete the sale for ${one?.passenger} (PNR ${one?.pnr})?` : `Delete these ${n} airfare sales?`)) return;
+    if (!(await askConfirm({ title: n === 1 ? 'Delete airfare sale' : `Delete ${n} airfare sales`, danger: true, confirmLabel: 'Delete', message: `${n === 1 ? `Delete the sale for ${one?.passenger} (PNR ${one?.pnr})?` : `Delete these ${n} airfare sales?`} ${(owner ? 'It will be moved to the Delete Archive, where it can be restored.' : 'You can still retrieve it from the Trash tab within 30 days.')}` }))) return;
     const fd = new FormData(); fd.set('ids', ids.join(','));
     try {
       const res = await fetch('/api/airfare/bulk-delete', { method: 'POST', body: fd, credentials: 'same-origin' });
@@ -61,6 +71,7 @@ export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: bool
     } catch { show('err', 'Network error. Please try again.'); }
   };
 
+  const groupOf = useGroupOf<Row>({ airline: (r) => r.airline, status: (r) => r.checkin_status, month: (r) => monthOf(r.txn_date), travel: (r) => r.travel_date });
   const picked = rows.filter((r) => sel.has(Number(r.id)));
   const counted = picked.filter((r) => r.checkin_status !== 'Cancelled');
   const sum = (k: string) => counted.reduce((s, r) => s + Number(r[k] || 0), 0);
@@ -69,8 +80,8 @@ export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: bool
     <div className="tw tw-fixed tw-fm tw-sel af-tw" ref={wrap} onContextMenu={emptyMenu}>
       <table><thead><tr>
         <th>Transaction date</th><th>Airline</th><th>PNR</th><th className="num">PAX</th><th>Passenger</th><th>Contact</th><th>Route</th>
-        <th>Travel</th><th>Check-in</th><th>Flight no.</th><th className="num">Total amount</th></tr></thead><tbody>
-        {rows.map((r, i) => (
+        <th>Travel</th><th>Check-in</th><th>Flight no.</th><th className="num">Total amount</th><th>Modified by</th></tr></thead><tbody>
+        {groupedRows(rows, groupOf, 12, (r, i) => (
           <tr key={r.id} {...rowProps(i, r.checkin_status === 'Cancelled' ? 'off' : '')} title="Double-click to edit"
             onDoubleClick={(e) => { if (!(e.target as Element).closest('a, button, input, select, textarea, label, [role=dialog]')) router.push(`/app/airfare/${r.id}`); }}>
             <td className="nowrap">{r.txn_date}</td><td className="nowrap">{r.airline}</td><td><strong>{r.pnr}</strong></td><td className="num">{r.pax}</td><td>{r.passenger}</td>
@@ -85,23 +96,25 @@ export function AirfareTable({ rows, owner, totals }: { rows: Row[]; owner: bool
               <Line k="Total amount" v={peso(r.total_amount)} /><Line k="Service charge" v={peso(r.service_charge)} />
               <Line k="Card fee" v={r.card_fee ? `(${peso(r.card_fee)})` : '—'} c={r.card_fee ? 'var(--err)' : undefined} />
               <Line k="Agency income" v={peso(Number(r.service_charge || 0) - Number(r.card_fee || 0))} /></>} /></td>
+            <td className="small"><ModBy r={r} /></td>
           </tr>
         ))}
-        {!rows.length && <tr><td colSpan={11} className="empty"><span className="empty-msg">No airfare sales recorded.</span></td></tr>}
+        {!rows.length && <tr><td colSpan={12} className="empty"><span className="empty-msg">No airfare sales recorded.</span></td></tr>}
         {/* Filler row stretches to the bottom so the footer below always sits at the bottom of the table area. */}
-        {!!rows.length && <tr className="fill"><td colSpan={11} /></tr>}
+        {!!rows.length && <tr className="fill"><td colSpan={12} /></tr>}
       </tbody>
       {/* Totals leave out cancelled sales (as everywhere else); `totals` covers every filtered sale, not just this page. */}
-      <FootLine cols={11} total={totals.n_all} selected={picked.length} right={picked.length
+      <FootLine cols={12} total={totals.n_all} selected={picked.length} right={picked.length
         ? `${skipped ? `${skipped} cancelled not counted · ` : ''}Total amount: ${peso(sum('total_amount'))} · Agency income: ${peso(sum('service_charge') - sum('card_fee'))}`
         : `Total amount: ${peso(totals.total)} · Agency income: ${peso(totals.sc - totals.fee)}`} />
       </table>
       {menu && (
         <div className="ctx-menu" role="menu" style={{ left: menu.x, top: menu.y }} onContextMenu={(e) => e.preventDefault()}>
           {!menu.ids.length && <button type="button" role="menuitem" onClick={() => { setMenu(null); window.dispatchEvent(new Event(NEW_SALE_EVT)); }}>New sale</button>}
+          {!menu.ids.length && <SortGroupItems sg={SG} done={() => setMenu(null)} />}
           {menu.ids.length === 1 && <button type="button" role="menuitem" onClick={() => { setMenu(null); router.push(`/app/airfare/${menu.ids[0]}`); }}>Edit</button>}
-          {owner && !!menu.ids.length && <button type="button" role="menuitem" className="danger" onClick={() => remove(menu.ids)}>{menu.ids.length === 1 ? 'Delete' : `Delete ${menu.ids.length} sales`}</button>}
-          {!owner && menu.ids.length > 1 && <button type="button" role="menuitem" onClick={() => setMenu(null)}>{menu.ids.length} sales selected</button>}
+          {!!menu.ids.length && menu.ids.every(mine) && <button type="button" role="menuitem" className="danger" onClick={() => remove(menu.ids)}>{menu.ids.length === 1 ? 'Delete' : `Delete ${menu.ids.length} sales`}</button>}
+          {!!menu.ids.length && !menu.ids.every(mine) && <button type="button" role="menuitem" onClick={() => setMenu(null)}>Staff can delete only the sales they added</button>}
         </div>
       )}
       {selBox}

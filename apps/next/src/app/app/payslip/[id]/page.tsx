@@ -7,6 +7,7 @@ import { hrs, longDate, peso } from '@/lib/util';
 import { Page } from '@/components/ui';
 import { PrintButton } from '@/components/widgets';
 import { pct } from '@/lib/deduction-shared';
+import { ROLE_LABELS } from '@/lib/types';
 import { payrollLines } from '@/lib/queries/deductions';
 
 export const metadata = { title: 'Payslip' };
@@ -18,7 +19,7 @@ export const metadata = { title: 'Payslip' };
 export default async function Payslip({ params }: PageProps<'/app/payslip/[id]'>) {
   const me = await requireUser();
   const { id } = await params;
-  const p = /^\d+$/.test(id) ? await db.get(`SELECT p.*, u.name, u.emp_no, u.designation, c.name AS created_by_name FROM payroll p JOIN users u ON u.id=p.user_id
+  const p = /^\d+$/.test(id) ? await db.get(`SELECT p.*, u.name, u.emp_no, u.designation, c.name AS created_by_name, c.designation AS created_by_designation, c.role AS created_by_role, c.signature AS created_by_sig FROM payroll p JOIN users u ON u.id=p.user_id
     LEFT JOIN users c ON c.id=p.created_by WHERE p.id=?`, [id]) : undefined;
   if (!p || (!isOwner(me) && p.user_id !== me.id)) notFound();
   const S = await settings();
@@ -33,10 +34,16 @@ export default async function Payslip({ params }: PageProps<'/app/payslip/[id]'>
           <div><h2>{S.business_name}</h2><div className="small muted">{S.address || S.location}</div></div>
           <div style={{ textAlign: 'right' }}><strong>PAYSLIP</strong><div className="small muted">No. PS-{String(p.id).padStart(5, '0')}</div><div className="small muted">Generated {longDate(p.created_at.slice(0, 10))}</div></div>
         </header>
+        <h3 className="ps-h">Employee Information</h3>
+        <div className="ps-info">
+          <div><span>Employee Name:</span><strong>{p.name}</strong>{p.emp_no ? <em> · {p.emp_no}</em> : null}</div>
+          <div><span>Payroll Period:</span>{longDate(p.period_from)} – {longDate(p.period_to)} <em>({p.period_kind})</em></div>
+          <div><span>Position:</span>{p.designation || '—'}</div>
+        </div>
+        <div className="ps-cols">
+        <div>
+        <h3 className="ps-h">Salary Breakdown</h3>
         <table><tbody>
-          <tr><td>Employee</td><td className="num"><strong>{p.name}</strong>{p.emp_no ? <span className="muted small"> · {p.emp_no}</span> : null}</td></tr>
-          {p.designation && <tr><td>Designation</td><td className="num">{p.designation}</td></tr>}
-          <tr><td>Payroll period</td><td className="num">{longDate(p.period_from)} – {longDate(p.period_to)} <span className="muted small">({p.period_kind})</span></td></tr>
           <tr><td>Working days</td><td className="num">{p.days}</td></tr>
           <tr><td>Total hours worked</td><td className="num">{hrs(p.minutes)}</td></tr>
           <tr><td>Hourly rate</td><td className="num">{peso(p.hourly_rate)}</td></tr>
@@ -44,6 +51,8 @@ export default async function Payslip({ params }: PageProps<'/app/payslip/[id]'>
           <tr><td>{p.adjustments < 0 ? 'Adjustment (deduction)' : 'Adjustments'}{p.adjustment_note ? <span className="muted small"> — {p.adjustment_note}</span> : null}</td><td className="num">{p.adjustments ? peso(p.adjustments) : '—'}</td></tr>
           <tr className="ps-sub"><td><strong>Gross salary</strong></td><td className="num"><strong>{peso(gross)}</strong></td></tr>
         </tbody></table>
+        </div>
+        <div>
         <h3 className="ps-h">Deductions</h3>
         <table><tbody>
           {lines.map((l) => (
@@ -53,8 +62,13 @@ export default async function Payslip({ params }: PageProps<'/app/payslip/[id]'>
           <tr className="ps-sub"><td><strong>Total deductions</strong></td><td className="num"><strong>{p.total_deductions ? '− ' + peso(p.total_deductions) : peso(0)}</strong></td></tr>
         </tbody></table>
         <div className="ps-net"><span>Net pay</span><strong>{peso(p.net_pay)}</strong></div>
+        </div>
+        </div>
         {p.incomplete > 0 && <p className="small muted">{p.incomplete} day{p.incomplete === 1 ? '' : 's'} with a time-in but no time-out {p.incomplete === 1 ? 'was' : 'were'} not paid.</p>}
-        <p className="small muted">Prepared by {p.created_by_name || '—'}. Net salary = gross salary − total deductions. Amounts come from the saved payroll record and do not change if rates, deductions or attendance change later.</p>
+        <div className="ps-sign">
+          {p.created_by_sig && <img src={`/api/files/signature/${p.id}`} alt="E-signature" />}
+          <div className="ps-sign-line"><strong>{p.created_by_name || '—'}</strong><div className="small muted">{p.created_by_designation || ROLE_LABELS[p.created_by_role] || ''}</div></div>
+        </div>
       </article>
     </Page>
   );

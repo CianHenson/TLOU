@@ -21,7 +21,7 @@ export const POST = api(async (req, ctx) => {
   const { a, errors } = airlineInput(b);
   if (!errors.name && await db.get('SELECT 1 FROM airlines WHERE name=? AND id<>?', [a.name, old.id])) errors.name = 'Another airline already has this name.';
   if (Object.keys(errors).length) return invalid(errors);
-  await db.run('UPDATE airlines SET name=?, code=?, active=?, updated_at=? WHERE id=?', [a.name, a.code || null, a.active, now(), old.id]);
-  await audit({ user, ip: clientIp(req) }, 'airline.update', 'airline', old.id, { before: { name: old.name, code: old.code, active: old.active }, after: a });
+  await db.run('UPDATE airlines SET name=?, active=?, updated_at=? WHERE id=?', [a.name, a.active, now(), old.id]);
+  await audit({ user, ip: clientIp(req) }, 'airline.update', 'airline', old.id, { before: { name: old.name, active: old.active }, after: a });
   return ok('Airline saved.');
 });

@@ -1,11 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { ApiForm, Field, Submit } from './form';
-import { Dropdown } from './dropdown';
+import { CategoryField, MethodField } from './expense-fields';
 import { DateField } from './date-time-picker';
 import { moneyInput } from './input-format';
 import { ShellPortal } from './shell-portal';
-import { EXPENSE_CATS, METHODS } from '@/lib/types';
 
 /** Window event that opens the Record expense dialog (the Monitoring Finances table's empty-space menu sends it). */
 export const NEW_EXPENSE_EVT = 'expense:new';
@@ -14,7 +13,7 @@ export const NEW_EXPENSE_EVT = 'expense:new';
  * Gold "+" header button (Expenses, Monitoring Finances) that opens the Add expense form in a modal. Posts to /api/expenses
  * like the Expenses page; on save the dialog closes, the sheet refreshes and the form is remounted empty.
  */
-export function ExpenseModalButton({ today }: { today: string }) {
+export function ExpenseModalButton({ today, categories }: { today: string; categories: string[] }) {
   const dlg = useRef<HTMLDialogElement>(null);
   const [k, setK] = useState(0);
   const close = () => dlg.current?.close();
@@ -39,8 +38,8 @@ export function ExpenseModalButton({ today }: { today: string }) {
               <div className="grid g2">
                 <DateField name="spent_at" label="Date *" defaultValue={today} max={today} today={today} required />
                 <Field name="amount" label="Amount (₱) *" attrs={{ inputMode: 'decimal', placeholder: '0.00', required: true, onInput: moneyInput }} />
-                <div className="field"><label>Category *</label><Dropdown name="category" ariaLabel="Category" options={EXPENSE_CATS} defaultValue={EXPENSE_CATS[0]} style={{ width: '100%' }} /></div>
-                <div className="field"><label>Payment method *</label><Dropdown name="method" ariaLabel="Payment method" options={METHODS} defaultValue={METHODS[0]} style={{ width: '100%' }} /></div>
+                <CategoryField categories={categories} />
+                <MethodField />
               </div>
               <Field name="description" label="Description *" attrs={{ maxLength: 500, required: true }} />
               <div className="field"><label htmlFor="ex-receipt">Receipt (PDF/JPG/PNG, max 5 MB)</label><input id="ex-receipt" type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" /></div>

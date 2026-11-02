@@ -1,16 +1,15 @@
 'use client';
 import { useRef } from 'react';
 import { ApiForm, Field, Submit } from './form';
-import { Dropdown } from './dropdown';
+import { CategoryField, MethodField } from './expense-fields';
 import { DateField } from './date-time-picker';
 import { moneyInput } from './input-format';
 import { ShellPortal } from './shell-portal';
-import { EXPENSE_CATS, METHODS } from '@/lib/types';
 
 export interface EditableExpense { id: number; date: string; type: string; description: string; method: string; amount: number; receiptName: string }
 
 /** Edit-expense dialog for Monitoring Finances; posts to /api/expenses/[id]/edit. Mounted only while editing (keyed by id). */
-export function ExpenseEditModal({ expense, today, onClose }: { expense: EditableExpense; today: string; onClose: () => void }) {
+export function ExpenseEditModal({ expense, today, categories, onClose }: { expense: EditableExpense; today: string; categories: string[]; onClose: () => void }) {
   const dlg = useRef<HTMLDialogElement | null>(null);
   // ShellPortal mounts its children a render late, so open the dialog when the element actually attaches.
   const attach = (el: HTMLDialogElement | null) => { dlg.current = el; if (el && !el.open) el.showModal(); };
@@ -27,10 +26,10 @@ export function ExpenseEditModal({ expense, today, onClose }: { expense: Editabl
             <div className="grid g2">
               <DateField name="spent_at" label="Date *" defaultValue={expense.date} max={today} today={today} required />
               <Field name="amount" label="Amount (₱) *" defaultValue={(expense.amount / 100).toFixed(2)} attrs={{ inputMode: 'decimal', placeholder: '0.00', required: true, onInput: moneyInput }} />
-              <div className="field"><label>Type of expense *</label><Dropdown name="category" ariaLabel="Type of expense" options={EXPENSE_CATS} defaultValue={expense.type} style={{ width: '100%' }} /></div>
-              <div className="field"><label>Payment method *</label><Dropdown name="method" ariaLabel="Payment method" options={METHODS} defaultValue={METHODS.includes(expense.method) ? expense.method : METHODS[0]} style={{ width: '100%' }} /></div>
+              <CategoryField categories={categories.includes(expense.type) ? categories : [...categories, expense.type]} defaultValue={expense.type} label="Type of expense *" />
+              <MethodField defaultValue={expense.method} />
             </div>
-            <Field name="description" label="Description / Remarks *" defaultValue={expense.description} attrs={{ maxLength: 500, required: true }} />
+            <Field name="description" label="Description *" defaultValue={expense.description} attrs={{ maxLength: 500, required: true }} />
             <div className="field">
               <label htmlFor="ee-receipt">Receipt (PDF/JPG/PNG, max 5 MB)</label>
               <input id="ee-receipt" type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" />

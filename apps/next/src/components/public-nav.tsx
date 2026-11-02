@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useScrollSpy } from './widgets';
@@ -8,37 +9,47 @@ const LINKS: [string, string][] = [['home', 'Home'], ['about', 'About Us'], ['se
 const IDS = LINKS.map(([id]) => id);
 
 /**
- * Public header links. On narrow screens (see .nav-burger in theme.css) they fold into a drop-down opened by a burger
- * button; picking a link, clicking outside or Esc closes it.
+ * Public header links. On wide screens they sit in the header; on narrow screens (see .nav-burger in theme.css) the burger opens
+ * them as a glass panel in the centre of the screen, over a blurred and dimmed page. Picking a link, the × button, clicking
+ * outside the panel or Esc closes it. The panel is rendered in a portal because the header's own blur would otherwise make
+ * `position: fixed` relative to the header instead of the screen.
  */
 export function PublicNav() {
   const spy = useScrollSpy(IDS);
   const path = usePathname();
   const onHome = path === '/';
   const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
   const warn = useRef<HTMLDialogElement>(null);
   useEffect(() => setOpen(false), [path]);
   useEffect(() => {
     if (!open) return;
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', close);
-    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
   }, [open]);
+  const staffLogin = (e: React.MouseEvent) => { e.preventDefault(); setOpen(false); warn.current?.showModal(); };
   return (
-    <div className="nav-box" ref={box}>
-      <button type="button" className="nav-burger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="pub-nav" onClick={() => setOpen(!open)}>
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
-        </svg>
+    <div className="nav-box">
+      <button type="button" className="nav-burger" aria-label="Open menu" aria-expanded={open} aria-controls="pub-nav-panel" onClick={() => setOpen(true)}>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
-      <nav id="pub-nav" className={`nav ${open ? 'open' : ''}`} aria-label="Main">
-        {LINKS.map(([id, label]) => <Link key={id} href={`/#${id}`} className={onHome && spy === id ? 'on' : ''} onClick={() => setOpen(false)}>{label}</Link>)}
-        <Link href="/login" className="muted small" onClick={(e) => { e.preventDefault(); setOpen(false); warn.current?.showModal(); }}>Staff login</Link>
+      <nav id="pub-nav" className="nav" aria-label="Main">
+        {LINKS.map(([id, label]) => <Link key={id} href={`/#${id}`} className={onHome && spy === id ? 'on' : ''}>{label}</Link>)}
+        <Link href="/login" className="muted small" onClick={staffLogin}>Staff login</Link>
       </nav>
+      {open && createPortal(
+        <div className="nav-overlay">
+          <div className="nav-scrim" onMouseDown={() => setOpen(false)} />
+          <nav id="pub-nav-panel" className="nav-glass" aria-label="Main menu">
+            <button type="button" className="nav-glass-x" aria-label="Close menu" autoFocus onClick={() => setOpen(false)}>
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+            {LINKS.map(([id, label]) => <Link key={id} href={`/#${id}`} className={onHome && spy === id ? 'on' : ''} onClick={() => setOpen(false)}>{label}</Link>)}
+            <Link href="/login" className="small" onClick={staffLogin}>Staff login</Link>
+          </nav>
+        </div>,
+        document.body,
+      )}
       <StaffLoginWarning dlg={warn} />
     </div>
   );

@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation';
 import type { MenuAction } from '@/lib/menu';
 import { ApiForm, Field, Submit } from './form';
 import { Modal } from './modal';
+import { SortGroupItems, type SortGroup } from './sort-group';
 
-export function RowMenus({ empty = [], children, className = 'tw' }: { empty?: MenuAction[]; children: ReactNode; className?: string }) {
+export function RowMenus({ empty = [], sg, children, className = 'tw' }: { empty?: MenuAction[]; sg?: SortGroup; children: ReactNode; className?: string }) {
   const router = useRouter();
-  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuAction[] } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuAction[]; blank: boolean } | null>(null);
   const [asking, setAsking] = useState<Extract<MenuAction, { reason: string }> | null>(null);
   const box = useRef<HTMLDivElement>(null);
 
@@ -26,18 +27,20 @@ export function RowMenus({ empty = [], children, className = 'tw' }: { empty?: M
   }, [menu]);
 
   const itemsFor = (t: Element): MenuAction[] | null => {
-    if (t.closest('thead, tfoot')) return null;
+    if (t.closest('thead, tfoot')) return empty; // headers act like empty space
     const tr = t.closest<HTMLElement>('tr[data-menu]');
     if (tr) { try { return JSON.parse(tr.dataset.menu!) as MenuAction[]; } catch { return null; } }
-    return t.closest('tr:not(.fill)') && !t.closest('td.empty') ? null : empty;
+    return t.closest('tr:not(.fill):not(.grp)') && !t.closest('td.empty') ? null : empty;
   };
   const onContext = (e: React.MouseEvent) => {
     const t = e.target as Element;
-    if (t.closest('a, button, input, select, textarea, label')) return; // keep the browser menu on links and controls
+    // keep the browser menu on links and controls (sort links in a table header are the exception: they count as header space)
+    if (t.closest(t.closest('thead') ? 'button, input, select, textarea, label' : 'a, button, input, select, textarea, label')) return;
     const items = itemsFor(t);
-    if (!items?.length) return;
+    const blank = items === empty && !!sg;
+    if (!items || !(items.length || blank)) return;
     e.preventDefault();
-    setMenu({ x: Math.min(e.clientX, window.innerWidth - 220), y: Math.min(e.clientY, window.innerHeight - items.length * 38 - 16), items });
+    setMenu({ x: Math.min(e.clientX, window.innerWidth - 220), y: Math.min(e.clientY, window.innerHeight - (items.length + (blank ? 3 : 0)) * 38 - 16), items, blank });
   };
   const onDouble = (e: React.MouseEvent) => {
     const t = e.target as Element;
@@ -59,6 +62,7 @@ export function RowMenus({ empty = [], children, className = 'tw' }: { empty?: M
           {menu.items.map((a) => (
             <button key={a.label} type="button" role="menuitem" className={'danger' in a && a.danger ? 'danger' : undefined} onClick={() => run(a)}>{a.label}</button>
           ))}
+          {menu.blank && sg && <SortGroupItems sg={sg} done={() => setMenu(null)} />}
         </div>
       )}
       {asking && (

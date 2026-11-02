@@ -9,7 +9,7 @@ import { COOKIE, MAX_AGE, REMEMBER_MAX_AGE, cookieOptions, readSession, signSess
 
 export interface SessionUser {
   id: number; username: string; name: string; role: 'owner' | 'admin' | 'employee'; emp_no: string;
-  can_expenses: boolean; must_change_pw: boolean;
+  can_expenses: boolean; can_messages: boolean; must_change_pw: boolean;
 }
 /** Owner-level access: the (single) owner and admins see and manage the same modules. */
 export const isOwner = (u: SessionUser) => u.role === 'owner' || u.role === 'admin';
@@ -27,20 +27,20 @@ export async function endSession() {
 export const currentUser = cache(async (): Promise<SessionUser | null> => {
   const uid = readSession((await cookies()).get(COOKIE)?.value);
   if (!uid) return null;
-  const u = await db.get(`SELECT id,username,name,role,emp_no,can_expenses,must_change_pw,active FROM users WHERE id=?`, [uid]);
+  const u = await db.get(`SELECT id,username,name,role,emp_no,can_expenses,can_messages,must_change_pw,active FROM users WHERE id=?`, [uid]);
   if (!u || !u.active) return null;
-  return { id: u.id, username: u.username, name: u.name, role: u.role, emp_no: u.emp_no, can_expenses: !!u.can_expenses, must_change_pw: !!u.must_change_pw };
+  return { id: u.id, username: u.username, name: u.name, role: u.role, emp_no: u.emp_no, can_expenses: !!u.can_expenses, can_messages: !!u.can_messages, must_change_pw: !!u.must_change_pw };
 });
 
 export class HttpError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
-type Need = 'user' | 'owner' | 'expenses';
-const allowed = (u: SessionUser, need: Need) => need === 'user' || (need === 'owner' ? isOwner(u) : isOwner(u) || u.can_expenses);
+type Need = 'user' | 'owner' | 'expenses' | 'messages';
+const allowed = (u: SessionUser, need: Need) => need === 'user' || (need === 'owner' ? isOwner(u) : isOwner(u) || (need === 'messages' ? u.can_messages : u.can_expenses));
 
 /** The only /app pages the owner sees (each entry also covers its sub-pages). Everything else redirects to the dashboard. */
-const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/finance-monitor', '/app/expenses', '/app/payments', '/app/airlines', '/app/deductions', '/app/employees', '/app/payslip', '/app/audit', '/app/profile', '/app/forbidden'];
+const OWNER_MODULES = ['/app/airfare', '/app/attendance-monitor', '/app/expenses','/app/airlines', '/app/deductions', '/app/employees', '/app/payslip', '/app/audit', '/app/messages','/app/delete-archive', '/app/profile', '/app/forbidden'];
 const ownerHidden = (path: string) => path !== '/app' && !OWNER_MODULES.some((m) => path === m || path.startsWith(m + '/'));
 
 /** For pages / layouts: returns the user or redirects. Forbidden roles get /app/forbidden. */

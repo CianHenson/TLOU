@@ -11,8 +11,6 @@ import { Page } from '@/components/ui';
 import { ClockCard } from '@/components/clockcard';
 import { DateRangeFilter } from '@/components/list-filters';
 import { AirfareTrend, AttendanceDonut, ExpenseTrend, Panel } from '@/components/dash-charts';
-import { AnnouncementCard } from '@/components/announcement-card';
-import { getHistory, getPosts } from '@/lib/queries/announcement';
 import { StaffCalendar, maxMonth } from '@/components/staff-calendar';
 import { LEAVE_BADGE } from '@/lib/types';
 
@@ -23,7 +21,6 @@ export default async function Dashboard(props: PageProps<'/app'>) {
   const me = (await db.get('SELECT * FROM users WHERE id=?', [user.id]))!;
   const rec = (await db.get('SELECT * FROM attendance WHERE user_id=? AND day=?', [me.id, U.today()])) ?? null;
   const mins = B.workedMin(me, rec);
-  const hello = <AnnouncementCard posts={await getPosts()} history={await getHistory()} owner={isOwner(user)} />;
   const clock = <ClockCard name={me.name} rec={rec} mins={mins} bar />;
 
   if (!isOwner(user)) {
@@ -35,14 +32,22 @@ export default async function Dashboard(props: PageProps<'/app'>) {
       B.daily(me, ...U.monthRange(ym)),
       db.all('SELECT id, kind, from_day, to_day, status, decline_reason FROM leave_requests WHERE user_id=? ORDER BY created_at DESC LIMIT 6', [me.id]),
     ]);
+    const worked = days.filter((d) => d.rec?.time_in), lateDays = worked.filter((d) => d.late).length, absentDays = days.filter((d) => d.status === 'Absent').length;
+    const monthName = new Date(ym + '-01T00:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
     const span = (a: string, b: string) => (a === b ? U.longDate(a) : `${U.longDate(a)} – ${U.longDate(b)}`);
     return (
       <Page title="Dashboard">
-        <div className="dash"><div className="dash-main">
-        {hello}
+        <div className="dash dfill"><div className="dash-main">
         {clock}
         <div className="grid g2 dcal">
           <StaffCalendar ym={ym} rows={days} today={U.today()} />
+          <div className="dside">
+          <div className="kpis">
+            <Link className="kpi" href={`/app/attendance?month=${ym}`}><div className="l">Days worked</div><div className="n">{worked.length}</div><div className="s">{monthName}</div></Link>
+            <Link className="kpi" href={`/app/attendance?month=${ym}`}><div className="l">Hours worked</div><div className="n">{U.hrs(days.reduce((a, d) => a + d.mins, 0))}</div><div className="s">{monthName}</div></Link>
+            <Link className={`kpi ${lateDays ? 'neg' : ''}`} href={`/app/attendance?month=${ym}`}><div className="l">Late</div><div className="n">{lateDays}</div><div className="s">{lateDays === 1 ? 'day' : 'days'} this month</div></Link>
+            <Link className={`kpi ${absentDays ? 'neg' : ''}`} href={`/app/attendance?month=${ym}`}><div className="l">Absent</div><div className="n">{absentDays}</div><div className="s">{absentDays === 1 ? 'day' : 'days'} this month</div></Link>
+          </div>
           <div className="card reqcard"><h3>My requests</h3>
             {requests.length ? <ul className="reqlist">{requests.map((r) => (
               <li key={r.id}><div><strong>{r.kind}</strong><div className="small muted">{span(r.from_day, r.to_day)}</div>
@@ -50,6 +55,7 @@ export default async function Dashboard(props: PageProps<'/app'>) {
                 <span className={`badge ${LEAVE_BADGE[r.status] || ''}`}>{r.status}</span></li>
             ))}</ul> : <p className="small muted">You have not made any requests yet.</p>}
             <p className="small" style={{ marginBottom: 0 }}><Link href="/app/attendance">View all in My Attendance →</Link></p>
+          </div>
           </div>
         </div>
         </div></div>
@@ -68,7 +74,9 @@ export default async function Dashboard(props: PageProps<'/app'>) {
   const netSeries = airMonths.map((m, i) => m.income - expMonths[i]);
   const rng = `from=${per.from}&to=${per.to}`;
   const notIn = Math.max(0, emp.active - emp.timedIn - emp.absent);
+  const newMessages = (await db.val('SELECT COUNT(*) FROM messages WHERE handled=0')) ?? 0;
   const attn = [
+    { n: newMessages, label: 'new messages from the website', href: '/app/messages?status=new' },
     { n: soon.length, label: 'flights need check-in (48 h)', href: '/app/airfare' },
     { n: emp.late, label: 'late today', href: '/app/attendance-monitor' },
     { n: emp.absent, label: 'absent today', href: '/app/attendance-monitor' },
@@ -80,15 +88,14 @@ export default async function Dashboard(props: PageProps<'/app'>) {
       <div className="af-bar"><DateRangeFilter today={U.today()} showBy={false} allowAll={false}
         initial={{ by: 'txn', from: per.from, to: per.to, range: per.key === 'custom' ? sp.range || 'custom' : ['month', 'year'].includes(per.key) ? per.key : 'custom' }} /></div>
     }>
-      <div className="dash"><div className="dash-main">
-      {hello}
+      <div className="dash dfill"><div className="dash-main">
       {clock}
 
       <div className="kpis">
         <Link className="kpi" href={`/app/airfare?${rng}`}><div className="l">Airfare sales</div><div className="n">{U.peso(air.total)}</div><div className="s">{air.n} tickets · {air.pax} pax</div></Link>
         <Link className={`kpi ${air.income >= 0 ? 'pos' : 'neg'}`} href={`/app/airfare?${rng}`}><div className="l">Agency income</div><div className="n">{U.peso(air.income)}</div><div className="s">Service charge − card fees</div></Link>
         <Link className="kpi" href={`/app/expenses?${rng}`}><div className="l">Expenses</div><div className="n">{U.peso(expenses)}</div><div className="s">Recorded in this period</div></Link>
-        <Link className={`kpi ${net >= 0 ? 'pos' : 'neg'}`} href={`/app/finance-monitor?${rng}`}><div className="l">Net result</div><div className="n">{U.peso(net)}</div><div className="s">Agency income − expenses</div></Link>
+        <Link className={`kpi ${net >= 0 ? 'pos' : 'neg'}`} href={`/app/expenses?${rng}`}><div className="l">Net result</div><div className="n">{U.peso(net)}</div><div className="s">Agency income − expenses</div></Link>
       </div>
 
       <div className="attn" aria-label="Needs attention">
